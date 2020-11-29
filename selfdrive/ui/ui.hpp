@@ -281,6 +281,8 @@ typedef struct UIState {
 
   int is_OpenpilotViewEnabled;
   int lateral_control;
+  int lat_mode;
+  int acc_mode;
 
   int nOpkrAutoScreenOff;
   int nOpkrUIBrightness;

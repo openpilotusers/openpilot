@@ -624,6 +624,9 @@ def main():
     ("OpkrBlindSpotDetect", "0"),
     ("OpkrMaxAngleLimit", "90"),
     ("OpkrAngleOffsetSelect", "0"),
+    ("OpkrCruiseGapSet", "4"),
+    ("OpkrLatMode", "0"),
+    ("OpkrAccMode", "0"),
   ]
 
   # set unset params

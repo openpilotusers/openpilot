@@ -41,20 +41,30 @@ static void draw_control_buttons(UIState *s, int touch_x, int touch_y) {
     nvgStrokeWidth(s->vg, 6);
     nvgStroke(s->vg);
     
-    nvgFontSize(s->vg, 50);
+    nvgFontSize(s->vg, 48);
     
-    if (s->lateral_control == 0) {
+    if (s->lat_mode == 0) {
       nvgFillColor(s->vg, nvgRGBA(255,255,255,200));
-      nvgText(s->vg,btn_xc1,btn_yc,"INDI",NULL);
-      nvgText(s->vg,btn_xc2,btn_yc,"LQR",NULL);
-    } else if (s->lateral_control == 1) {
+      nvgText(s->vg,btn_xc1,btn_yc,"OPA",NULL);
+    } else if (s->lat_mode == 1) {
       nvgFillColor(s->vg, nvgRGBA(255,255,255,200));
-      nvgText(s->vg,btn_xc1,btn_yc,"PID",NULL);
-      nvgText(s->vg,btn_xc2,btn_yc,"LQR",NULL);
-    } else if (s->lateral_control == 2) {
+      nvgText(s->vg,btn_xc1,btn_yc,"CITY",NULL);
+    } else if (s->lat_mode == 2) {
       nvgFillColor(s->vg, nvgRGBA(255,255,255,200));
-      nvgText(s->vg,btn_xc1,btn_yc,"INDI",NULL);
-      nvgText(s->vg,btn_xc2,btn_yc,"PID",NULL);
+      nvgText(s->vg,btn_xc1,btn_yc,"HIGH\nWAY",NULL);
+    } else if (s->lat_mode == 3) {
+      nvgFillColor(s->vg, nvgRGBA(255,255,255,200));
+      nvgText(s->vg,btn_xc1,btn_yc,"ONE\nWAY",NULL);
+    }
+    if (s->acc_mode == 0) {
+      nvgFillColor(s->vg, nvgRGBA(255,255,255,200));
+      nvgText(s->vg,btn_xc2,btn_yc,"ECO",NULL);
+    } else if (s->acc_mode == 1) {
+      nvgFillColor(s->vg, nvgRGBA(255,255,255,200));
+      nvgText(s->vg,btn_xc2,btn_yc,"NORMAL",NULL);
+    } else if (s->acc_mode == 2) {
+      nvgFillColor(s->vg, nvgRGBA(255,255,255,200));
+      nvgText(s->vg,btn_xc2,btn_yc,"SPORT",NULL);
     }
   }
 }
@@ -66,22 +76,24 @@ bool latcontrol( UIState *s, int touch_x, int touch_y ) {
   draw_control_buttons(s, touch_x, touch_y);
 
   if ((control_button_clicked1(touch_x,touch_y)) && (s->scene.uilayout_sidebarcollapsed == true)) {
-    if (s->lateral_control == 0) {
-      Params().write_db_value("LateralControlMethod", "1", 1);
-    } else if (s->lateral_control == 1) {
-      Params().write_db_value("LateralControlMethod", "0", 1);
-    } else if (s->lateral_control == 2) {
-      Params().write_db_value("LateralControlMethod", "1", 1);
+    if (s->lat_mode == 0) {
+      Params().write_db_value("OpkrLatMode", "0", 1);
+    } else if (s->lat_mode == 1) {
+      Params().write_db_value("OpkrLatMode", "1", 1);
+    } else if (s->lat_mode == 2) {
+      Params().write_db_value("OpkrLatMode", "2", 1);
+    } else if (s->lat_mode == 3) {
+      Params().write_db_value("OpkrLatMode", "3", 1);
     }
     touched = true;
   }
   if ((control_button_clicked2(touch_x,touch_y)) && (s->scene.uilayout_sidebarcollapsed == true)) {
-    if (s->lateral_control == 0) {
-      Params().write_db_value("LateralControlMethod", "2", 1);
-    } else if (s->lateral_control == 1) {
-      Params().write_db_value("LateralControlMethod", "2", 1);
-    } else if (s->lateral_control == 2) {
-      Params().write_db_value("LateralControlMethod", "0", 1);
+    if (s->acc_mode == 0) {
+      Params().write_db_value("OpkrAccMode", "0", 1);
+    } else if (s->acc_mode == 1) {
+      Params().write_db_value("OpkrAccMode", "1", 1);
+    } else if (s->acc_mode == 2) {
+      Params().write_db_value("OpkrAccMode", "2", 1);
     }
     touched = true;
   }

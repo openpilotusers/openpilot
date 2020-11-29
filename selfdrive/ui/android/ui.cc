@@ -15,7 +15,7 @@
 #include "paint.hpp"
 #include "android/sl_sound.hpp"
 #include "dashcam.h"
-//#include "latcontrol.h"
+#include "latcontrol.h"
 
 volatile sig_atomic_t do_exit = 0;
 static void set_do_exit(int sig) {
@@ -185,9 +185,9 @@ int main(int argc, char* argv[]) {
       touched = 0;
     }
 
-    //if ((s->awake) && (latcontrol(s, touch_x, touch_y))) {
-    //  touched = 0;
-    //}
+    if ((s->awake) && (latcontrol(s, touch_x, touch_y))) {
+      touched = 0;
+    }
 
     if (touched == 1) {
       if (s->nOpkrAutoScreenOff && s->awake_timeout == 0) {
