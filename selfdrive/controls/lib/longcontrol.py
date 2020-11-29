@@ -3,6 +3,8 @@ from common.numpy_fast import clip, interp
 from selfdrive.controls.lib.pid import LongPIDController
 
 from selfdrive.controls.lib.events import Events
+from common.params import Params
+
 import common.log as trace1
 import common.CTime1000 as tm
 
@@ -11,8 +13,8 @@ LongCtrlState = log.ControlsState.LongControlState
 STOPPING_EGO_SPEED = 0.5
 MIN_CAN_SPEED = 0.3  # TODO: parametrize this in car interface
 STOPPING_TARGET_SPEED = MIN_CAN_SPEED + 0.01
-STARTING_TARGET_SPEED = 0.1
-BRAKE_THRESHOLD_TO_PID = 0.2
+STARTING_TARGET_SPEED = 0.05
+BRAKE_THRESHOLD_TO_PID = 0.5
 
 STOPPING_BRAKE_RATE = 0.5  # brake_travel/s while trying to stop
 STARTING_BRAKE_RATE = 6  # brake_travel/s while releasing on restart
@@ -22,14 +24,14 @@ RATE = 100.0
 
 
 def long_control_state_trans(active, long_control_state, v_ego, v_target, v_pid,
-                             output_gb, brake_pressed, cruise_standstill):
+                             output_gb, brake_pressed, cruise_standstill, brake_hold, gas_pressed):
   """Update longitudinal control state machine"""
   stopping_condition = (v_ego < 1.3 and cruise_standstill) or \
                        (v_ego < STOPPING_EGO_SPEED and
                         ((v_pid < STOPPING_TARGET_SPEED and v_target < STOPPING_TARGET_SPEED) or
                         brake_pressed))
 
-  starting_condition = v_target > STARTING_TARGET_SPEED and not cruise_standstill
+  starting_condition = v_target > STARTING_TARGET_SPEED and not brake_hold and (Params().get('OpkrAutoResume') == b'1' or gas_pressed)
 
   if not active:
     long_control_state = LongCtrlState.off
@@ -86,7 +88,7 @@ class LongControl():
     output_gb = self.last_output_gb
     self.long_control_state = long_control_state_trans(active, self.long_control_state, CS.vEgo,
                                                        v_target_future, self.v_pid, output_gb,
-                                                       CS.brakePressed, CS.cruiseState.standstill)
+                                                       CS.brakePressed, CS.cruiseState.standstill, CS.brakeHold, CS.gasPressed)
 
     v_ego_pid = max(CS.vEgo, MIN_CAN_SPEED)  # Without this we get jumps, CAN bus reports 0 when speed < 0.3
 
@@ -144,7 +146,7 @@ class LongControl():
     else:
       self.long_stat = "---"
 
-    str_log3 = 'LS={:s}  GS={:01.2f}/{:01.2f}  BK={:01.2f}/{:01.2f}  GB={:02.2f}  TG=V:{:04.1f}/F:{:04.1f}/A:{:04.1f}'.format(self.long_stat, final_gas, gas_max, abs(final_brake), abs(brake_max), output_gb, v_target, v_target_future, a_target)
+    str_log3 = 'LS={:s}  GS={:01.2f}/{:01.2f}  BK={:01.2f}/{:01.2f}  GB={:02.2f}  TG=V:{:05.2f}/F:{:05.2f}/A:{:+04.2f}'.format(self.long_stat, final_gas, gas_max, abs(final_brake), abs(brake_max), output_gb, v_target, abs(v_target_future), a_target)
     trace1.printf2('{}'.format(str_log3))
 
     # 동작로직설명

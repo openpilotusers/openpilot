@@ -83,7 +83,7 @@ class CarState(CarStateBase):
 
     ret.steerWarning = cp_mdps.vl["MDPS12"]['CF_Mdps_ToiUnavail'] != 0
 
-    self.brakeHold = (cp.vl["ESP11"]['AVH_STAT'] == 1)
+    ret.brakeHold = cp.vl["ESP11"]['AVH_STAT'] == 1
 
     self.cruise_main_button = cp.vl["CLU11"]["CF_Clu_CruiseSwMain"]
     self.cruise_buttons = cp.vl["CLU11"]["CF_Clu_CruiseSwState"]

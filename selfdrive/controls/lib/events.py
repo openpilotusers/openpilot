@@ -523,7 +523,7 @@ EVENTS: Dict[int, Dict[str, Union[Alert, Callable[[Any, messaging.SubMaster, boo
   EventName.standStill: {
     ET.WARNING: Alert(
       "일시 정차",
-      "앞차 출발 시 자동 출발합니다",
+      "앞차 출발 시 자동 출발합니다(수동출발은 페달을 밟으세요∠)",
       AlertStatus.userPrompt, AlertSize.mid,
       Priority.LOW, VisualAlert.none, AudibleAlert.none, 0., 0., .2),
   },
