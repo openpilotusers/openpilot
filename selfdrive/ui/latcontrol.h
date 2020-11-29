@@ -51,7 +51,7 @@ static void draw_control_buttons(UIState *s, int touch_x, int touch_y) {
       nvgText(s->vg,btn_xc1,btn_yc,"CITY",NULL);
     } else if (s->lat_mode == 2) {
       nvgFillColor(s->vg, nvgRGBA(255,255,255,200));
-      nvgText(s->vg,btn_xc1,btn_yc,"HIGHW",NULL);
+      nvgText(s->vg,btn_xc1,btn_yc,"HIGW",NULL);
     } else if (s->lat_mode == 3) {
       nvgFillColor(s->vg, nvgRGBA(255,255,255,200));
       nvgText(s->vg,btn_xc1,btn_yc,"ONEW",NULL);
@@ -61,10 +61,10 @@ static void draw_control_buttons(UIState *s, int touch_x, int touch_y) {
       nvgText(s->vg,btn_xc2,btn_yc,"ECO",NULL);
     } else if (s->acc_mode == 1) {
       nvgFillColor(s->vg, nvgRGBA(255,255,255,200));
-      nvgText(s->vg,btn_xc2,btn_yc,"NORML",NULL);
+      nvgText(s->vg,btn_xc2,btn_yc,"NORM",NULL);
     } else if (s->acc_mode == 2) {
       nvgFillColor(s->vg, nvgRGBA(255,255,255,200));
-      nvgText(s->vg,btn_xc2,btn_yc,"SPORT",NULL);
+      nvgText(s->vg,btn_xc2,btn_yc,"SPRT",NULL);
     }
   }
 }
