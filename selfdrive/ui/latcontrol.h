@@ -76,9 +76,9 @@ bool latcontrol( UIState *s, int touch_x, int touch_y ) {
   draw_control_buttons(s, touch_x, touch_y);
 
   if ((control_button_clicked1(touch_x,touch_y)) && (s->scene.uilayout_sidebarcollapsed == true)) {
-    s->lat_mode = s->lat_mode + 1
+    s->lat_mode = s->lat_mode + 1;
     if (s->lat_mode > 3) {
-      s->lat_mode = 0
+      s->lat_mode = 0;
     }
     if (s->lat_mode == 0) {
       Params().write_db_value("OpkrLatMode", "0", 1);
@@ -92,9 +92,9 @@ bool latcontrol( UIState *s, int touch_x, int touch_y ) {
     touched = true;
   }
   if ((control_button_clicked2(touch_x,touch_y)) && (s->scene.uilayout_sidebarcollapsed == true)) {
-    s->acc_mode = s->acc_mode + 1
+    s->acc_mode = s->acc_mode + 1;
     if (s->acc_mode > 2) {
-      s->acc_mode = 0
+      s->acc_mode = 0;
     }
     if (s->acc_mode == 0) {
       Params().write_db_value("OpkrAccMode", "0", 1);
