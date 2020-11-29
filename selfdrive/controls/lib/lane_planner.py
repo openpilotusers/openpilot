@@ -66,7 +66,7 @@ class LanePlanner:
 
   def update_d_poly(self, v_ego, sm):
     curvature = sm['controlsState'].curvature
-    mode_select = sm['carState'].cruiseState.modeSel
+    mode_select = int(Params().get('OpkrLatMode'))
     Curv = round(curvature, 4)
     Poly_differ = round(abs(self.l_poly[3] + self.r_poly[3]), 2)
 

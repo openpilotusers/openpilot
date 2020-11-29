@@ -14,9 +14,6 @@ from selfdrive.controls.lib.longcontrol import LongCtrlState, MIN_CAN_SPEED
 from selfdrive.controls.lib.fcw import FCWChecker
 from selfdrive.controls.lib.long_mpc import LongitudinalMpc
 from selfdrive.controls.lib.drive_helpers import V_CRUISE_MAX
-from selfdrive.kegman_conf import kegman_conf
-
-kegman = kegman_conf()
 
 LON_MPC_STEP = 0.2  # first step is 0.2s
 AWARENESS_DECEL = -0.2     # car smoothly decel at .2m/s^2 when user is distracted
@@ -44,8 +41,6 @@ _A_TOTAL_MAX_BP = [0., 25., 55.]
 
 def calc_cruise_accel_limits(v_ego, following, accelMode):
   a_cruise_min = interp(v_ego, _A_CRUISE_MIN_BP, _A_CRUISE_MIN_V)
-
-  print("accelMode = ",accelMode) 
 
   if following:
     a_cruise_max = interp(v_ego, _A_CRUISE_MAX_BP, _A_CRUISE_MAX_V_FOLLOWING)
@@ -90,7 +85,6 @@ class Planner():
     self.path_x = np.arange(192)
 
     self.params = Params()
-    self.kegman = kegman_conf()
     self.mpc_frame = 0
     self.first_loop = True
 
@@ -137,14 +131,14 @@ class Planner():
     following = lead_1.status and lead_1.dRel < 45.0 and lead_1.vLeadK > v_ego and lead_1.aLeadK > 0.0
 
     if self.mpc_frame % 1000 == 0:
-      self.kegman = kegman_conf()
+      self.params = Params()
       self.mpc_frame = 0
       
     self.mpc_frame += 1
     
     # Calculate speed for normal cruise control
     if enabled and not self.first_loop and not sm['carState'].gasPressed:
-      accel_limits = [float(x) for x in calc_cruise_accel_limits(v_ego, following, self.kegman.conf['accelerationMode'])]
+      accel_limits = [float(x) for x in calc_cruise_accel_limits(v_ego, following, int(self.params.get('OpkrAccMode')))]
       jerk_limits = [min(-0.1, accel_limits[0]), max(0.1, accel_limits[1])]  # TODO: make a separate lookup for jerk tuning
       accel_limits_turns = limit_accel_in_turns(v_ego, sm['carState'].steeringAngle, accel_limits, self.CP)
 
