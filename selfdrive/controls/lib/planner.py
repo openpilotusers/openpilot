@@ -14,34 +14,45 @@ from selfdrive.controls.lib.longcontrol import LongCtrlState, MIN_CAN_SPEED
 from selfdrive.controls.lib.fcw import FCWChecker
 from selfdrive.controls.lib.long_mpc import LongitudinalMpc
 from selfdrive.controls.lib.drive_helpers import V_CRUISE_MAX
-from selfdrive.controls.lib.long_mpc_model import LongitudinalMpcModel
+from selfdrive.kegman_conf import kegman_conf
+
+kegman = kegman_conf()
 
 LON_MPC_STEP = 0.2  # first step is 0.2s
-AWARENESS_DECEL = 0     # car smoothly decel at .2m/s^2 when user is distracted
+AWARENESS_DECEL = -0.2     # car smoothly decel at .2m/s^2 when user is distracted
 
 # lookup tables VS speed to determine min and max accels in cruise
 # make sure these accelerations are smaller than mpc limits
-_A_CRUISE_MIN_V = [-1.0, -.8, -.67, -.5, -.30]
-_A_CRUISE_MIN_BP = [   0., 5.,  10., 20.,  40.]
+_A_CRUISE_MIN_V_ECO = [-1.0, -0.7, -0.6, -0.5, -0.3]
+_A_CRUISE_MIN_V_SPORT = [-3.0, -2.6, -2.3, -2.0, -1.0]
+_A_CRUISE_MIN_V_FOLLOWING = [-3.0, -2.5, -2.0, -1.5, -1.0]
+_A_CRUISE_MIN_V = [-2.0, -1.5, -1.0, -0.7, -0.5]
+_A_CRUISE_MIN_BP = [0.0, 5.0, 10.0, 20.0, 55.0]
 
 # need fast accel at very low speed for stop and go
 # make sure these accelerations are smaller than mpc limits
-_A_CRUISE_MAX_V = [1.2, 1.2, 0.65, .4]
-_A_CRUISE_MAX_V_FOLLOWING = [1.6, 1.6, 0.65, .4]
-_A_CRUISE_MAX_BP = [0.,  6.4, 22.5, 40.]
+_A_CRUISE_MAX_V = [2.0, 2.0, 1.5, .5, .3]
+_A_CRUISE_MAX_V_ECO = [0.8, 0.9, 1.0, 0.4, 0.2]
+_A_CRUISE_MAX_V_SPORT = [3.0, 3.5, 3.0, 2.0, 2.0]
+_A_CRUISE_MAX_V_FOLLOWING = [1.6, 1.4, 1.4, .7, .3]
+_A_CRUISE_MAX_BP = [0., 5., 10., 20., 55.]
 
 # Lookup table for turns
-_A_TOTAL_MAX_V = [1.7, 3.2]
-_A_TOTAL_MAX_BP = [20., 40.]
+_A_TOTAL_MAX_V = [3.5, 4.0, 5.0]
+_A_TOTAL_MAX_BP = [0., 25., 55.]
 
 
-def calc_cruise_accel_limits(v_ego, following):
+def calc_cruise_accel_limits(v_ego, following, accelMode):
   a_cruise_min = interp(v_ego, _A_CRUISE_MIN_BP, _A_CRUISE_MIN_V)
+
+  print("accelMode = ",accelMode) 
 
   if following:
     a_cruise_max = interp(v_ego, _A_CRUISE_MAX_BP, _A_CRUISE_MAX_V_FOLLOWING)
   else:
-    a_cruise_max = interp(v_ego, _A_CRUISE_MAX_BP, _A_CRUISE_MAX_V)
+    _A_CRUISE_MAX_V_MODE_LIST = [_A_CRUISE_MAX_V_ECO, _A_CRUISE_MAX_V, _A_CRUISE_MAX_V_SPORT]
+    _A_CRUISE_MAX_V_MODE_LIST_INDEX = min(max(int(accelMode), 0), (len(_A_CRUISE_MAX_V_MODE_LIST) - 1))
+    a_cruise_max = interp(v_ego, _A_CRUISE_MAX_BP, _A_CRUISE_MAX_V_MODE_LIST[_A_CRUISE_MAX_V_MODE_LIST_INDEX])
   return np.vstack([a_cruise_min, a_cruise_max])
 
 
@@ -64,7 +75,6 @@ class Planner():
 
     self.mpc1 = LongitudinalMpc(1)
     self.mpc2 = LongitudinalMpc(2)
-    self.mpc_model = LongitudinalMpcModel()
 
     self.v_acc_start = 0.0
     self.a_acc_start = 0.0
@@ -80,6 +90,8 @@ class Planner():
     self.path_x = np.arange(192)
 
     self.params = Params()
+    self.kegman = kegman_conf()
+    self.mpc_frame = 0
     self.first_loop = True
 
   def choose_solution(self, v_cruise_setpoint, enabled):
@@ -89,8 +101,6 @@ class Planner():
         solutions['mpc1'] = self.mpc1.v_mpc
       if self.mpc2.prev_lead_status:
         solutions['mpc2'] = self.mpc2.v_mpc
-      if self.mpc_model.valid:
-        solutions['model'] = self.mpc_model.v_mpc
 
       slowest = min(solutions, key=solutions.get)
 
@@ -105,31 +115,8 @@ class Planner():
       elif slowest == 'cruise':
         self.v_acc = self.v_cruise
         self.a_acc = self.a_cruise
-      elif slowest == 'model':
-        self.v_acc = self.mpc_model.v_mpc
-        self.a_acc = self.mpc_model.a_mpc
 
-    self.v_acc_future = min([self.mpc1.v_mpc_future, self.mpc2.v_mpc_future, self.mpc_model.v_mpc_future, v_cruise_setpoint])
-
-  def parse_modelV2_data(self, sm):
-    modelV2 = sm['modelV2']
-    distances, speeds, accelerations = [], [], []
-    if not sm.updated['modelV2'] or len(modelV2.position.x) == 0:
-      return distances, speeds, accelerations
-
-    model_t = modelV2.position.t
-    mpc_times = list(range(10))
-
-    model_t_idx = [sorted(range(len(model_t)), key=[abs(idx - t) for t in model_t].__getitem__)[0] for idx in mpc_times]  # matches 0 to 9 interval to idx from t
-
-    for t in model_t_idx:  # everything is derived from x position since velocity is outputting weird values
-      speeds.append(modelV2.velocity.x[t])
-      distances.append(modelV2.position.x[t])
-      if model_t_idx.index(t) > 0:  # skip first since we can't calculate (and don't want to use v_ego)
-        accelerations.append((speeds[-1] - speeds[-2]) / model_t[t])
-
-    accelerations.insert(0, accelerations[1] - (accelerations[2] - accelerations[1]))  # extrapolate back first accel from second and third, less weight
-    return distances, speeds, accelerations
+    self.v_acc_future = min([self.mpc1.v_mpc_future, self.mpc2.v_mpc_future, v_cruise_setpoint])
 
   def update(self, sm, pm, CP, VM, PP):
     """Gets called when new radarState is available"""
@@ -149,9 +136,15 @@ class Planner():
     enabled = (long_control_state == LongCtrlState.pid) or (long_control_state == LongCtrlState.stopping)
     following = lead_1.status and lead_1.dRel < 45.0 and lead_1.vLeadK > v_ego and lead_1.aLeadK > 0.0
 
+    if self.mpc_frame % 1000 == 0:
+      self.kegman = kegman_conf()
+      self.mpc_frame = 0
+      
+    self.mpc_frame += 1
+    
     # Calculate speed for normal cruise control
     if enabled and not self.first_loop and not sm['carState'].gasPressed:
-      accel_limits = [float(x) for x in calc_cruise_accel_limits(v_ego, following)]
+      accel_limits = [float(x) for x in calc_cruise_accel_limits(v_ego, following, self.kegman.conf['accelerationMode'])]
       jerk_limits = [min(-0.1, accel_limits[0]), max(0.1, accel_limits[1])]  # TODO: make a separate lookup for jerk tuning
       accel_limits_turns = limit_accel_in_turns(v_ego, sm['carState'].steeringAngle, accel_limits, self.CP)
 
@@ -182,16 +175,9 @@ class Planner():
 
     self.mpc1.set_cur_state(self.v_acc_start, self.a_acc_start)
     self.mpc2.set_cur_state(self.v_acc_start, self.a_acc_start)
-    self.mpc_model.set_cur_state(self.v_acc_start, self.a_acc_start)
 
     self.mpc1.update(pm, sm['carState'], lead_1)
     self.mpc2.update(pm, sm['carState'], lead_2)
-
-    distances, speeds, accelerations = self.parse_modelV2_data(sm)
-    self.mpc_model.update(sm['carState'].vEgo, sm['carState'].aEgo,
-                          distances,
-                          speeds,
-                          accelerations)
 
     self.choose_solution(v_cruise_setpoint, enabled)
 

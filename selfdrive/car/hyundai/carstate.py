@@ -167,7 +167,7 @@ class CarState(CarStateBase):
     else:
       ret.tpmsPressureRr = cp.vl["TPMS11"]['PRESSURE_RR']
 
-    self.cruiseGapSet = cp_scc.vl["SCC11"]['TauGapSet']
+    ret.cruiseGapSet = cp_scc.vl["SCC11"]['TauGapSet']
 
     # TODO: refactor gear parsing in function
     # Gear Selection via Cluster - For those Kia/Hyundai which are not fully discovered, we can use the Cluster Indicator for Gear Selection,
