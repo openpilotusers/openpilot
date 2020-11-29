@@ -111,10 +111,7 @@ class CarController():
     self.driver_steering_torque_above_timer = 100
     
     self.params = Params()
-    self.mode_change_switch = int(self.params.get('CruiseStatemodeSelInit'))
-    self.opkr_variablecruise = int(self.params.get('OpkrVariableCruise'))
     self.opkr_autoresume = int(self.params.get('OpkrAutoResume'))
-    self.opkr_autoresumeoption = int(self.params.get('OpkrAutoResumeOption'))
 
     self.opkr_maxanglelimit = int(self.params.get('OpkrMaxAngleLimit'))
 
