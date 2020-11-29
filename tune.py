@@ -130,9 +130,6 @@ while True:
 
   if float(kegman.conf['tuneGernby']) != 1 and float(kegman.conf['tuneGernby']) != 0:
     kegman.conf['tuneGernby'] = "1"
-
-  if float(kegman.conf['accelerationMode']) != 0 and float(kegman.conf['accelerationMode']) != 1 and float(kegman.conf['accelerationMode'] != "2"):
-    kegman.conf['accelerationMode'] = "1"
     
   if float(kegman.conf['1barBP0']) < -0.5:
     kegman.conf['1barBP0'] = "-0.5"  

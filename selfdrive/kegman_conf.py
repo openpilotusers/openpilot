@@ -36,7 +36,6 @@ class kegman_conf():
         self.config.update({"3barBP1":"3.0"})
         self.element_updated = True
 
-
       if "1barMax" not in self.config:
         self.config.update({"1barMax":"2.1"})
         self.config.update({"2barMax":"2.1"})
@@ -51,10 +50,6 @@ class kegman_conf():
 	
       if "slowOnCurves" not in self.config:
         self.config.update({"slowOnCurves":"0"})
-        self.element_updated = True
-
-      if "accelerationMode" not in self.config:
-        self.config.update({"accelerationMode":"1"})
         self.element_updated = True
 
       if self.element_updated:
