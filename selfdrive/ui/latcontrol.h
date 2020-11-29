@@ -41,7 +41,7 @@ static void draw_control_buttons(UIState *s, int touch_x, int touch_y) {
     nvgStrokeWidth(s->vg, 6);
     nvgStroke(s->vg);
     
-    nvgFontSize(s->vg, 48);
+    nvgFontSize(s->vg, 45);
     
     if (s->lat_mode == 0) {
       nvgFillColor(s->vg, nvgRGBA(255,255,255,200));
@@ -51,17 +51,17 @@ static void draw_control_buttons(UIState *s, int touch_x, int touch_y) {
       nvgText(s->vg,btn_xc1,btn_yc,"CITY",NULL);
     } else if (s->lat_mode == 2) {
       nvgFillColor(s->vg, nvgRGBA(255,255,255,200));
-      nvgText(s->vg,btn_xc1,btn_yc,"HIGH\nWAY",NULL);
+      nvgText(s->vg,btn_xc1,btn_yc,"HIGHW",NULL);
     } else if (s->lat_mode == 3) {
       nvgFillColor(s->vg, nvgRGBA(255,255,255,200));
-      nvgText(s->vg,btn_xc1,btn_yc,"ONE\nWAY",NULL);
+      nvgText(s->vg,btn_xc1,btn_yc,"ONEW",NULL);
     }
     if (s->acc_mode == 0) {
       nvgFillColor(s->vg, nvgRGBA(255,255,255,200));
       nvgText(s->vg,btn_xc2,btn_yc,"ECO",NULL);
     } else if (s->acc_mode == 1) {
       nvgFillColor(s->vg, nvgRGBA(255,255,255,200));
-      nvgText(s->vg,btn_xc2,btn_yc,"NORMAL",NULL);
+      nvgText(s->vg,btn_xc2,btn_yc,"NORML",NULL);
     } else if (s->acc_mode == 2) {
       nvgFillColor(s->vg, nvgRGBA(255,255,255,200));
       nvgText(s->vg,btn_xc2,btn_yc,"SPORT",NULL);
