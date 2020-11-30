@@ -108,6 +108,8 @@ class CarController():
     self.emergency_manual_timer = 0
     self.driver_steering_torque_above = False
     self.driver_steering_torque_above_timer = 100
+
+    self.acc_standstill_timer = 0
     
     self.params = Params()
     self.gapsettingdance = int(self.params.get('OpkrCruiseGapSet'))
@@ -313,6 +315,12 @@ class CarController():
       self.sm.update(0)
       long_control_state = self.sm['controlsState'].longControlState
       self.acc_standstill = True if long_control_state == LongCtrlState.stopping else False
+      if self.acc_standstill == True:
+        self.acc_standstill_timer += 1
+        if self.acc_standstill_timer >= 100:
+          self.acc_standstill_timer = 100
+      else:
+        self.acc_standstill_timer = 0
     else:
       self.acc_standstill = False
 

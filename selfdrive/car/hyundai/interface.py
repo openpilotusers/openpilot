@@ -67,7 +67,7 @@ class CarInterface(CarInterfaceBase):
     ret.gasMaxBP = [0., 1., 1.1, 15., 40.] # 브레이크 포인트(속도, 단위:m/s)
     ret.gasMaxV = [2., 2., 2., 1.6, 1.4] # 가스(액셀) 최대 값. 주행중 적용되는 값이 아님, 오파가 허용하는 최대값임. longcontrol.py파일 참조
     ret.brakeMaxBP = [0., 5.] # 브레이크 포인트(속도, 단위:m/s)
-    ret.brakeMaxV = [3.5, 3.5] # 브레이크 최대값. 주행중 적용되는 값이 아님, 오파가 허용하는 최대값임. longcontrol.py파일 참조
+    ret.brakeMaxV = [4.0, 4.0] # 브레이크 최대값. 주행중 적용되는 값이 아님, 오파가 허용하는 최대값임. longcontrol.py파일 참조
 
     ret.steerMaxV = [LqrSteerMaxV]
     ret.steerMaxBP = [0.]
@@ -253,6 +253,8 @@ class CarInterface(CarInterfaceBase):
       events.add(EventName.laneChangeManual)
     if self.CC.emergency_manual_timer:
       events.add(EventName.emgButtonManual)
+    if self.acc_standstill_timer >= 100:
+      events.add(EventName.standStill)
 
     buttonEvents = []
     if self.CS.cruise_buttons != self.CS.prev_cruise_buttons:

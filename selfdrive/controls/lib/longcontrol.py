@@ -2,7 +2,6 @@ from cereal import car, log
 from common.numpy_fast import clip, interp
 from selfdrive.controls.lib.pid import PIController
 
-from selfdrive.controls.lib.events import Events
 from common.params import Params
 
 import common.log as trace1
@@ -131,9 +130,6 @@ class LongControl():
 
     if self.long_control_state == LongCtrlState.stopping:
       self.long_stat = "STP"
-      if v_target == 0:
-        events = Events()
-        events.add(car.CarEvent.EventName.standStill)
     elif self.long_control_state == LongCtrlState.starting:
       self.long_stat = "STR"
     elif self.long_control_state == LongCtrlState.pid:

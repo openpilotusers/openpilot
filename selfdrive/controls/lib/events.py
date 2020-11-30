@@ -525,7 +525,7 @@ EVENTS: Dict[int, Dict[str, Union[Alert, Callable[[Any, messaging.SubMaster, boo
       "일시 정차",
       "앞차 출발 시 자동 출발합니다(수동출발은 페달을 밟으세요∠)",
       AlertStatus.userPrompt, AlertSize.mid,
-      Priority.LOW, VisualAlert.none, AudibleAlert.none, 0., 0., .2),
+      Priority.LOW, VisualAlert.none, AudibleAlert.none, .1, .1, .1),
   },
 
   # ********** events that affect controls state transitions **********

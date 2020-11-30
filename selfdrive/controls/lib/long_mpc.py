@@ -16,18 +16,22 @@ if "ONE_BAR_DISTANCE" in kegman.conf:
     ONE_BAR_DISTANCE = float(kegman.conf['ONE_BAR_DISTANCE'])
 else:
     ONE_BAR_DISTANCE = 0.9  # in seconds
+
 if "TWO_BAR_DISTANCE" in kegman.conf:
     TWO_BAR_DISTANCE = float(kegman.conf['TWO_BAR_DISTANCE'])
 else:
     TWO_BAR_DISTANCE = 1.3  # in seconds
+
 if "THREE_BAR_DISTANCE" in kegman.conf:
     THREE_BAR_DISTANCE = float(kegman.conf['THREE_BAR_DISTANCE'])
 else:
     THREE_BAR_DISTANCE = 1.8  # in seconds
+
 if "FOUR_BAR_DISTANCE" in kegman.conf:
     FOUR_BAR_DISTANCE = float(kegman.conf['FOUR_BAR_DISTANCE'])
 else:
     FOUR_BAR_DISTANCE = 2.3   # in seconds
+
 if "STOPPING_DISTANCE" in kegman.conf:
     STOPPING_DISTANCE = float(kegman.conf['STOPPING_DISTANCE'])
 else:
