@@ -51,7 +51,7 @@ class CarInterface(CarInterfaceBase):
     ret.steerRatio = int(params.get('SteerRatioAdj')) * 0.1
 
     ret.longitudinalTuning.kpBP = [0., 1., 10., 35.]
-    ret.longitudinalTuning.kpV = [1.0, 1.2, 0.8, 0.7]
+    ret.longitudinalTuning.kpV = [0.8, 1.1, 0.8, 0.7]
     ret.longitudinalTuning.kiBP = [0., 15., 35.]
     ret.longitudinalTuning.kiV = [0.35, 0.25, 0.15]
 
