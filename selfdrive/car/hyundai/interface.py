@@ -169,6 +169,7 @@ class CarInterface(CarInterfaceBase):
     ret.lvrAvailable = True if 871 in fingerprint[0] else False
     ret.evgearAvailable = True if 882 in fingerprint[0] else False
     ret.emsAvailable = True if 608 and 809 in fingerprint[0] else False
+    ret.standStill = False
 
     if True:
       ret.sccBus = 2 if 1057 in fingerprint[2] and False else 0 if 1057 in fingerprint[0] else -1
