@@ -50,24 +50,18 @@ class CarInterface(CarInterfaceBase):
     ret.steerLimitTimer = int(params.get('SteerLimitTimerAdj')) * 0.01
     ret.steerRatio = int(params.get('SteerRatioAdj')) * 0.1
 
-    # 오파 차간거리 조절 파라미터, 현재 브레이킹이 원활하지 않습니다. 사용에 주의를 요합니다. 고오급개발자의 손이 필요할듯 하네요^^
-    # selfdrive/controls/lib 내 longcontrol.py, long_mpc.py, planner.py 참조
-
-    # 주의해야할 부분
-    # 정지차량이나 급정지하는 차량을 만났을 경우, 앞차 감지전 진입 속도가 높을 경우 충분한 브레이킹이 어려울 수 있음.
-    # 정지차량의 경우 통상 진입속도가 50~60정도면 감속 가능한듯 함. PI값에 따라 조절 가능하나, 그건 본인의 몫임. feat. 부드러움과 거침의 사이(내 그어친 생곽과 불안한 눈빛과~~♬)
-    ret.longitudinalTuning.kpBP = [0., 1., 10., 35.] # 브레이크 포인트(속도, 단위:m/s)
-    ret.longitudinalTuning.kpV = [1.0, 1.3, 0.8, 0.7] # 브레이크 포인트에 해당하는 비례값, 그 사이는 보간값임. 값이 클수록 해당속도에 빨리 도달(가스/브레이크 둘다 영향)
-    ret.longitudinalTuning.kiBP = [0., 15., 35.] # 브레이크 포인트(속도, 단위:m/s)
-    ret.longitudinalTuning.kiV = [0.4, 0.3, 0.2] # 적분값, 비례값에 대한 오차를 보상함. 도달속도가 느릴수록 값을 올려야함. 오버슈트가 날경우 값을 줄여야함.
+    ret.longitudinalTuning.kpBP = [0., 1., 10., 35.]
+    ret.longitudinalTuning.kpV = [1.0, 1.2, 0.8, 0.7]
+    ret.longitudinalTuning.kiBP = [0., 15., 35.]
+    ret.longitudinalTuning.kiV = [0.35, 0.25, 0.15]
 
     ret.longitudinalTuning.deadzoneBP = [0.0, 0.5]
     ret.longitudinalTuning.deadzoneV = [0.00, 0.00]
   
-    ret.gasMaxBP = [0., 1., 1.1, 15., 40.] # 브레이크 포인트(속도, 단위:m/s)
-    ret.gasMaxV = [2., 2., 2., 1.6, 1.4] # 가스(액셀) 최대 값. 주행중 적용되는 값이 아님, 오파가 허용하는 최대값임. longcontrol.py파일 참조
-    ret.brakeMaxBP = [0., 5.] # 브레이크 포인트(속도, 단위:m/s)
-    ret.brakeMaxV = [4.0, 4.0] # 브레이크 최대값. 주행중 적용되는 값이 아님, 오파가 허용하는 최대값임. longcontrol.py파일 참조
+    ret.gasMaxBP = [0., 1., 1.1, 15., 40.]
+    ret.gasMaxV = [2., 2., 2., 1.6, 1.4]
+    ret.brakeMaxBP = [0., 5.]
+    ret.brakeMaxV = [3.8, 3.8]
 
     ret.steerMaxV = [LqrSteerMaxV]
     ret.steerMaxBP = [0.]
@@ -253,7 +247,7 @@ class CarInterface(CarInterfaceBase):
       events.add(EventName.laneChangeManual)
     if self.CC.emergency_manual_timer:
       events.add(EventName.emgButtonManual)
-    if self.CC.acc_standstill_timer >= 100:
+    if self.CC.acc_standstill_timer >= 200:
       events.add(EventName.standStill)
 
     buttonEvents = []
