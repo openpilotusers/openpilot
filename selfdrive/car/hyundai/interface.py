@@ -253,7 +253,7 @@ class CarInterface(CarInterfaceBase):
       events.add(EventName.laneChangeManual)
     if self.CC.emergency_manual_timer:
       events.add(EventName.emgButtonManual)
-    if self.acc_standstill_timer >= 100:
+    if self.CC.acc_standstill_timer >= 100:
       events.add(EventName.standStill)
 
     buttonEvents = []
