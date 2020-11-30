@@ -296,6 +296,7 @@ class CarInterface(CarInterfaceBase):
           events.add(EventName.pcmEnable)
           #events.add(EventName.buttonCancel)
           #events.add(EventName.pcmDisable)
+          print('button={}'.format(ButtonType.altButton3))
 
     ret.events = events.to_msg()
     self.CS.out = ret.as_reader()
