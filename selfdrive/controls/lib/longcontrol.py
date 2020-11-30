@@ -142,10 +142,4 @@ class LongControl():
     str_log3 = 'LS={:s}  GS={:01.2f}/{:01.2f}  BK={:01.2f}/{:01.2f}  GB={:+04.2f}  TG=V:{:05.2f}/F:{:05.2f}/A:{:+04.2f}  GS={}'.format(self.long_stat, final_gas, gas_max, abs(final_brake), abs(brake_max), output_gb, v_target, abs(v_target_future), a_target, CS.gasPressed)
     trace1.printf2('{}'.format(str_log3))
 
-    # 동작로직설명
-    # self.long_control_state가 4가지 상태임. STP는 차가 정지상태, STR은 차가 막 출발하려고 하는 상태(앞차 출발할 경우), PID는 주행중 상태임
-    # v_target과 주행 모델(cruise, mpc1..., model)값에 의해 gas/brake 값이 결정(PID제어, 기준값은 interface.py에서 불러옴)되며, output_gb값이 +이면 가속상태(gas>brake)이고, -이면 감속상태(brake>gas)임.
-    # 현기 자체의 dynamic gas나 가변 브레이킹을 개발할 필요성이 있음. 간단한 테스트 결과, cut-in 감속등은 잘되고 있음을 확인했으며,
-    # e2e기능(신호등 인식 감속, 정지선인식 감속, 속도표지판 인식 후 해당속도 주행 등)은 되든것 같은데 되는것 같지 않은 되는것 같은 듯.
-    # 역시 고오오오급 개발자의 능력이 필요합니다^^ 질문은 사절하며, 이상 일반인의 헛소리였습니다. ※ 개발자 아님
     return final_gas, final_brake
