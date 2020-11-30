@@ -254,7 +254,7 @@ class CarController():
         self.gapsettingdance = 4
       self.prev_gapButton = CS.cruise_buttons
 
-    print('gaspressed={} brakehold={}'.format(CS.out.gasPressed, CS.out.brakeHold))
+    print("gaspressed={} brakehold={}".format(CS.out.gasPressed, CS.out.brakeHold))
 
     self.apply_steer_last = apply_steer
 
