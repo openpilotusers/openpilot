@@ -39,8 +39,6 @@ void ui_init(UIState *s) {
   read_param(&s->nDebugUi2, "DebugUi2");
   read_param(&s->nOpkrBlindSpotDetect, "OpkrBlindSpotDetect");
   read_param(&s->lateral_control, "LateralControlMethod");
-  read_param(&s->lateral_control, "lat_mode");
-  read_param(&s->lateral_control, "acc_mode");
 
   s->fb = framebuffer_init("ui", 0, true, &s->fb_w, &s->fb_h);
   assert(s->fb);
@@ -404,8 +402,6 @@ void ui_update(UIState *s) {
     read_param(&s->nDebugUi2, "DebugUi2");
     read_param(&s->nOpkrBlindSpotDetect, "OpkrBlindSpotDetect");
     read_param(&s->lateral_control, "LateralControlMethod");
-    read_param(&s->lateral_control, "lat_mode");
-    read_param(&s->lateral_control, "acc_mode");
   } else if ((s->sm)->frame % (6*UI_FREQ) == 0) {
     int param_read = read_param(&s->last_athena_ping, "LastAthenaPingTime");
     if (param_read != 0) { // Failed to read param
