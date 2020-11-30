@@ -254,6 +254,8 @@ class CarController():
         self.gapsettingdance = 4
       self.prev_gapButton = CS.cruise_buttons
 
+    print('gaspressed={} brakehold={}'.format(CS.out.gasPressed, CS.out.brakeHold))
+
     self.apply_steer_last = apply_steer
 
     sys_warning, sys_state, left_lane_warning, right_lane_warning =\

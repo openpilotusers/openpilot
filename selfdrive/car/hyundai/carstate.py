@@ -498,7 +498,7 @@ class CarState(CarStateBase):
         ("VSetDis", "SCC11", 0),
         ("ObjValid", "SCC11", 0),
         ("DriverAlertDisplay", "SCC11", 0),
-        ("TauGapSet", "SCC11", 4),
+        ("TauGapSet", "SCC11", 0),
         ("ACC_ObjStatus", "SCC11", 0),
         ("ACC_ObjLatPos", "SCC11", 0),
         ("ACC_ObjDist", "SCC11", 150.),
