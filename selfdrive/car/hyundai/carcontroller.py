@@ -405,7 +405,7 @@ class CarController():
                                       CS.out.standstill, CS.scc11,
                                       self.usestockscc, CS.CP.radarOffCan, self.scc11cnt, self.sendaccmode))
 
-        if CS.brake_check == 1 or CS.main_button_check == 1:
+        if CS.brake_check == 1:
           can_sends.append(create_scc12(self.packer, apply_accel, enabled,
                                       self.acc_standstill, CS.out.gasPressed, 1,
                                       CS.out.stockAeb,

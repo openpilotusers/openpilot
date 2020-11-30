@@ -550,7 +550,7 @@ static void ui_draw_vision_maxspeed(UIState *s) {
   const int text_x = viz_maxspeed_x + (viz_maxspeed_xo / 2) + (viz_maxspeed_w / 2);
   ui_draw_text(s->vg, text_x, 148, "설정속도", 26 * 2.2, COLOR_WHITE_ALPHA(is_cruise_set ? 200 : 100), s->font_sans_regular);
 
-  if (is_cruise_set) {
+  if (is_cruise_set && s->scene.controls_state.getEnabled()) {
     snprintf(maxspeed_str, sizeof(maxspeed_str), "%d", maxspeed_calc);
     ui_draw_text(s->vg, text_x, 242, maxspeed_str, 48 * 2.3, COLOR_WHITE, s->font_sans_bold);
   } else {
