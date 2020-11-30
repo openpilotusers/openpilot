@@ -61,7 +61,7 @@ class CarInterface(CarInterfaceBase):
     ret.gasMaxBP = [0., 1., 1.1, 15., 40.]
     ret.gasMaxV = [2., 2., 2., 1.6, 1.4]
     ret.brakeMaxBP = [0., 5.]
-    ret.brakeMaxV = [3.5, 3.5]
+    ret.brakeMaxV = [3.8, 3.8]
 
     ret.steerMaxV = [LqrSteerMaxV]
     ret.steerMaxBP = [0.]
