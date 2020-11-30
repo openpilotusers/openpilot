@@ -700,73 +700,6 @@ static void ui_draw_driver_view(UIState *s) {
   ui_draw_circle_image(s->vg, x, y, face_size-5, s->img_face, scene->dmonitoring_state.getFaceDetected());
 }
 
-static void bb_ui_draw_UI(UIState *s)
-{
-  const UIScene *scene = &s->scene;
-  const int bb_dml_w = 180;
-  const int bb_dml_x = (scene->viz_rect.x + (bdr_s * 2));
-  const int bb_dml_y = (scene->viz_rect.y + (bdr_s * 1.5)) + 220;
-
-  const int bb_dmr_w = 180;
-  const int bb_dmr_x = scene->viz_rect.x + scene->viz_rect.w - bb_dmr_w - (bdr_s * 2);
-  const int bb_dmr_y = (scene->viz_rect.y + (bdr_s * 1.5)) + 220;
-
-  bb_ui_draw_measures_right(s, bb_dml_x, bb_dml_y, bb_dml_w);
-  bb_ui_draw_measures_left(s, bb_dmr_x, bb_dmr_y-20, bb_dmr_w);
-}
-
-static void ui_draw_vision_header(UIState *s) {
-  const Rect &viz_rect = s->scene.viz_rect;
-  NVGpaint gradient = nvgLinearGradient(s->vg, viz_rect.x,
-                        viz_rect.y+(header_h-(header_h/2.5)),
-                        viz_rect.x, viz_rect.y+header_h,
-                        nvgRGBAf(0,0,0,0.45), nvgRGBAf(0,0,0,0));
-
-  ui_draw_rect(s->vg, viz_rect.x, viz_rect.y, viz_rect.w, header_h, gradient);
-
-  ui_draw_vision_maxspeed(s);
-  ui_draw_vision_speed(s);
-  ui_draw_vision_event(s);
-  bb_ui_draw_UI(s);
-  ui_draw_tpms(s);
-}
-
-//BB START: functions added for the display of various items
-static int bb_ui_draw_measure(UIState *s,  const char* bb_value, const char* bb_uom, const char* bb_label,
-    int bb_x, int bb_y, int bb_uom_dx,
-    NVGcolor bb_valueColor, NVGcolor bb_labelColor, NVGcolor bb_uomColor,
-    int bb_valueFontSize, int bb_labelFontSize, int bb_uomFontSize )  {
-  nvgTextAlign(s->vg, NVG_ALIGN_CENTER | NVG_ALIGN_BASELINE);
-  int dx = 0;
-  if (strlen(bb_uom) > 0) {
-    dx = (int)(bb_uomFontSize*2.5/2);
-   }
-  //print value
-  nvgFontFace(s->vg, "sans-semibold");
-  nvgFontSize(s->vg, bb_valueFontSize*2.5);
-  nvgFillColor(s->vg, bb_valueColor);
-  nvgText(s->vg, bb_x-dx/2, bb_y+ (int)(bb_valueFontSize*2.5)+5, bb_value, NULL);
-  //print label
-  nvgFontFace(s->vg, "sans-regular");
-  nvgFontSize(s->vg, bb_labelFontSize*2.5);
-  nvgFillColor(s->vg, bb_labelColor);
-  nvgText(s->vg, bb_x, bb_y + (int)(bb_valueFontSize*2.5)+5 + (int)(bb_labelFontSize*2.5)+5, bb_label, NULL);
-  //print uom
-  if (strlen(bb_uom) > 0) {
-      nvgSave(s->vg);
-    int rx =bb_x + bb_uom_dx + bb_valueFontSize -3;
-    int ry = bb_y + (int)(bb_valueFontSize*2.5/2)+25;
-    nvgTranslate(s->vg,rx,ry);
-    nvgRotate(s->vg, -1.5708); //-90deg in radians
-    nvgFontFace(s->vg, "sans-regular");
-    nvgFontSize(s->vg, (int)(bb_uomFontSize*2.5));
-    nvgFillColor(s->vg, bb_uomColor);
-    nvgText(s->vg, 0, 0, bb_uom, NULL);
-    nvgRestore(s->vg);
-  }
-  return (int)((bb_valueFontSize + bb_labelFontSize)*2.5) + 5;
-}
-
 static void bb_ui_draw_measures_left(UIState *s, int bb_x, int bb_y, int bb_w ) {
   const UIScene *scene = &s->scene;
   int bb_rx = bb_x + (int)(bb_w/2);
@@ -1040,6 +973,73 @@ static void bb_ui_draw_measures_right(UIState *s, int bb_x, int bb_y, int bb_w )
 }
 
 //BB END: functions added for the display of various items
+
+static void bb_ui_draw_UI(UIState *s)
+{
+  const UIScene *scene = &s->scene;
+  const int bb_dml_w = 180;
+  const int bb_dml_x = (scene->viz_rect.x + (bdr_s * 2));
+  const int bb_dml_y = (scene->viz_rect.y + (bdr_s * 1.5)) + 220;
+
+  const int bb_dmr_w = 180;
+  const int bb_dmr_x = scene->viz_rect.x + scene->viz_rect.w - bb_dmr_w - (bdr_s * 2);
+  const int bb_dmr_y = (scene->viz_rect.y + (bdr_s * 1.5)) + 220;
+
+  bb_ui_draw_measures_right(s, bb_dml_x, bb_dml_y, bb_dml_w);
+  bb_ui_draw_measures_left(s, bb_dmr_x, bb_dmr_y-20, bb_dmr_w);
+}
+
+static void ui_draw_vision_header(UIState *s) {
+  const Rect &viz_rect = s->scene.viz_rect;
+  NVGpaint gradient = nvgLinearGradient(s->vg, viz_rect.x,
+                        viz_rect.y+(header_h-(header_h/2.5)),
+                        viz_rect.x, viz_rect.y+header_h,
+                        nvgRGBAf(0,0,0,0.45), nvgRGBAf(0,0,0,0));
+
+  ui_draw_rect(s->vg, viz_rect.x, viz_rect.y, viz_rect.w, header_h, gradient);
+
+  ui_draw_vision_maxspeed(s);
+  ui_draw_vision_speed(s);
+  ui_draw_vision_event(s);
+  bb_ui_draw_UI(s);
+  ui_draw_tpms(s);
+}
+
+//BB START: functions added for the display of various items
+static int bb_ui_draw_measure(UIState *s,  const char* bb_value, const char* bb_uom, const char* bb_label,
+    int bb_x, int bb_y, int bb_uom_dx,
+    NVGcolor bb_valueColor, NVGcolor bb_labelColor, NVGcolor bb_uomColor,
+    int bb_valueFontSize, int bb_labelFontSize, int bb_uomFontSize )  {
+  nvgTextAlign(s->vg, NVG_ALIGN_CENTER | NVG_ALIGN_BASELINE);
+  int dx = 0;
+  if (strlen(bb_uom) > 0) {
+    dx = (int)(bb_uomFontSize*2.5/2);
+   }
+  //print value
+  nvgFontFace(s->vg, "sans-semibold");
+  nvgFontSize(s->vg, bb_valueFontSize*2.5);
+  nvgFillColor(s->vg, bb_valueColor);
+  nvgText(s->vg, bb_x-dx/2, bb_y+ (int)(bb_valueFontSize*2.5)+5, bb_value, NULL);
+  //print label
+  nvgFontFace(s->vg, "sans-regular");
+  nvgFontSize(s->vg, bb_labelFontSize*2.5);
+  nvgFillColor(s->vg, bb_labelColor);
+  nvgText(s->vg, bb_x, bb_y + (int)(bb_valueFontSize*2.5)+5 + (int)(bb_labelFontSize*2.5)+5, bb_label, NULL);
+  //print uom
+  if (strlen(bb_uom) > 0) {
+      nvgSave(s->vg);
+    int rx =bb_x + bb_uom_dx + bb_valueFontSize -3;
+    int ry = bb_y + (int)(bb_valueFontSize*2.5/2)+25;
+    nvgTranslate(s->vg,rx,ry);
+    nvgRotate(s->vg, -1.5708); //-90deg in radians
+    nvgFontFace(s->vg, "sans-regular");
+    nvgFontSize(s->vg, (int)(bb_uomFontSize*2.5));
+    nvgFillColor(s->vg, bb_uomColor);
+    nvgText(s->vg, 0, 0, bb_uom, NULL);
+    nvgRestore(s->vg);
+  }
+  return (int)((bb_valueFontSize + bb_labelFontSize)*2.5) + 5;
+}
 
 static void ui_draw_vision_car(UIState *s) {
   const UIScene *scene = &s->scene;
