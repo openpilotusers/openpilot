@@ -243,8 +243,8 @@ class CarInterface(CarInterfaceBase):
     if self.CP.sccBus == 2:
       self.CP.enableCruise = self.CC.usestockscc
 
-    #if self.CS.brakeHold and not self.CC.usestockscc:
-    #  events.add(EventName.brakeHold)
+    if self.CS.brakeHold and not self.CC.usestockscc:
+      events.add(EventName.brakeHold)
     if self.CS.parkBrake and not self.CC.usestockscc:
       events.add(EventName.parkBrake)
     if self.CS.brakeUnavailable and not self.CC.usestockscc:
