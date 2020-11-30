@@ -712,6 +712,8 @@ static void ui_draw_vision_header(UIState *s) {
   ui_draw_vision_maxspeed(s);
   ui_draw_vision_speed(s);
   ui_draw_vision_event(s);
+  bb_ui_draw_UI(s);
+  ui_draw_tpms(s);
 }
 
 //BB START: functions added for the display of various items
@@ -1105,8 +1107,6 @@ static void ui_draw_vision_footer(UIState *s) {
   nvgBeginPath(s->vg);
   nvgRect(s->vg, scene->viz_rect.x, s->scene.viz_rect.bottom(), scene->viz_rect.w, footer_h);
   ui_draw_vision_face(s);
-  bb_ui_draw_UI(s);
-  ui_draw_tpms(s);
   ui_draw_vision_car(s);
 }
 
