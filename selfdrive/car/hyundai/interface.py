@@ -249,6 +249,9 @@ class CarInterface(CarInterfaceBase):
       events.add(EventName.emgButtonManual)
     if self.CC.acc_standstill_timer >= 200:
       events.add(EventName.standStill)
+      ret.standStill = True
+    else:
+      ret.standStill = False
 
     buttonEvents = []
     if self.CS.cruise_buttons != self.CS.prev_cruise_buttons:

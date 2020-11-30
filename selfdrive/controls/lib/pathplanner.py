@@ -99,6 +99,8 @@ class PathPlanner():
 
     self.angle_offset_select = int(Params().get('OpkrAngleOffsetSelect'))
 
+    self.standstill_elapsed_time = 0
+
   def setup_mpc(self):
     self.libmpc = libmpc_py.libmpc
     self.libmpc.init(MPC_COST_LAT.PATH, MPC_COST_LAT.LANE, MPC_COST_LAT.HEADING, self.steer_rate_cost)
@@ -313,6 +315,13 @@ class PathPlanner():
     plan_send.pathPlan.steerActuatorDelay = self.new_steer_actuator_delay
     plan_send.pathPlan.steerRateCost = self.new_steer_rate_cost
     plan_send.pathPlan.outputScale = output_scale
+
+    if CP.standStill:
+      self.standstill_elapsed_time += DT_MDL
+      if self.standstill_elapsed_time % 1 == 0:
+        plan_send.pathPlan.standstillElapsedTime = int(self.standstill_elapsed_time)
+    else:
+      self.standstill_elapsed_time = 0
 
     pm.send('pathPlan', plan_send)
 
