@@ -23,12 +23,14 @@ class CarState(CarStateBase):
     self.radar_obj_valid = 0.
     self.vrelative = 0.
     self.prev_cruise_buttons = 0
+    self.prev_gap_button = 0
     self.cancel_button_count = 0
     self.cancel_button_timer = 0
     self.leftblinkerflashdebounce = 0
     self.rightblinkerflashdebounce = 0
 
     self.steer_anglecorrection = int(Params().get('OpkrSteerAngleCorrection')) * 0.1
+    self.cruise_gap = int(Params().get('OpkrCruiseGapSet'))
 
   def update(self, cp, cp2, cp_cam):
     cp_mdps = cp2 if self.CP.mdpsHarness else cp
@@ -101,6 +103,13 @@ class CarState(CarStateBase):
     else:
       self.cancel_button_count = 0
 
+    if self.prev_gap_button != self.cruise_buttons:
+      if self.cruise_buttons == 3:
+        self.cruise_gap -= 1
+      if self.cruise_gap < 1:
+        self.cruise_gap = 4
+      self.prev_gap_button = self.cruise_buttons
+
     # cruise state
     if not self.CP.enableCruise:
       if self.cruise_buttons == 1 or self.cruise_buttons == 2:
@@ -167,7 +176,7 @@ class CarState(CarStateBase):
     else:
       ret.tpmsPressureRr = cp.vl["TPMS11"]['PRESSURE_RR']
 
-    ret.cruiseGapSet = cp_scc.vl["SCC11"]['TauGapSet']
+    ret.cruiseGapSet = self.cruise_gap
 
     # TODO: refactor gear parsing in function
     # Gear Selection via Cluster - For those Kia/Hyundai which are not fully discovered, we can use the Cluster Indicator for Gear Selection,
@@ -498,7 +507,7 @@ class CarState(CarStateBase):
         ("VSetDis", "SCC11", 0),
         ("ObjValid", "SCC11", 0),
         ("DriverAlertDisplay", "SCC11", 0),
-        ("TauGapSet", "SCC11", 0),
+        ("TauGapSet", "SCC11", 4),
         ("ACC_ObjStatus", "SCC11", 0),
         ("ACC_ObjLatPos", "SCC11", 0),
         ("ACC_ObjDist", "SCC11", 150.),

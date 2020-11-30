@@ -31,7 +31,7 @@ def long_control_state_trans(active, long_control_state, v_ego, v_target, v_pid,
                         ((v_pid < STOPPING_TARGET_SPEED and v_target < STOPPING_TARGET_SPEED) or
                         brake_pressed))
 
-  starting_condition = v_target > STARTING_TARGET_SPEED and not brake_hold and (Params().get('OpkrAutoResume') == b'1' or gas_pressed)
+  starting_condition = v_target > STARTING_TARGET_SPEED and not cruise_standstill and (int(Params().get('OpkrAutoResume')) == 1)
 
   if not active:
     long_control_state = LongCtrlState.off
