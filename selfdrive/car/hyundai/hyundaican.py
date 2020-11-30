@@ -130,7 +130,7 @@ def create_scc12(packer, apply_accel, enabled, standstill, gaspressed, brakepres
   values = scc12
 
   if not usestockscc and not aebcmdact:
-    if enabled and not brakepressed:
+    if enabled: #and not brakepressed:
       values["ACCMode"] = 2 if gaspressed and (apply_accel > -0.2) else 1
       if apply_accel < 0.0 and standstill:
         values["StopReq"] = 1
