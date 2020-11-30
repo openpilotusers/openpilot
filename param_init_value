@@ -48,3 +48,5 @@ DebugUi2:0
 OpkrBlindSpotDetect:0
 OpkrMaxAngleLimit:90
 OpkrAngleOffsetSelect:0
+OpkrCruiseGapSet:3
+OpkrAccMode:1
