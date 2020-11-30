@@ -16,6 +16,7 @@ class CarInterface(CarInterfaceBase):
     self.cp2 = self.CS.get_can2_parser(CP)
     self.visiononlyWarning = False
     self.belowspeeddingtimer = 0.
+    self.standstill_stat = False
 
   @staticmethod
   def compute_gb(accel, speed):
@@ -169,7 +170,7 @@ class CarInterface(CarInterfaceBase):
     ret.lvrAvailable = True if 871 in fingerprint[0] else False
     ret.evgearAvailable = True if 882 in fingerprint[0] else False
     ret.emsAvailable = True if 608 and 809 in fingerprint[0] else False
-    ret.standStill = False
+    ret.standStill = self.standstill_stat
 
     if True:
       ret.sccBus = 2 if 1057 in fingerprint[2] and False else 0 if 1057 in fingerprint[0] else -1
@@ -250,9 +251,9 @@ class CarInterface(CarInterfaceBase):
       events.add(EventName.emgButtonManual)
     if self.CC.acc_standstill_timer >= 200:
       events.add(EventName.standStill)
-      ret.standStill = True
+      self.standstill_stat = True
     else:
-      ret.standStill = False
+      self.standstill_stat = False
 
     buttonEvents = []
     if self.CS.cruise_buttons != self.CS.prev_cruise_buttons:
