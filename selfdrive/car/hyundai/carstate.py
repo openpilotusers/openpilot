@@ -91,8 +91,6 @@ class CarState(CarStateBase):
     self.cruise_main_button = cp.vl["CLU11"]["CF_Clu_CruiseSwMain"]
     self.cruise_buttons = cp.vl["CLU11"]["CF_Clu_CruiseSwState"]
 
-    print('main={}  cruise={}'.format(self.cruise_main_button, self.cruise_buttons))
-
     if not self.cruise_main_button:
       if self.cruise_buttons == 4 and self.prev_cruise_buttons != 4 and self.cancel_button_count < 3:
         self.cancel_button_count += 1
@@ -115,7 +113,7 @@ class CarState(CarStateBase):
 
     # cruise state
     if not self.CP.enableCruise:
-      if self.cruise_buttons == 1 or self.cruise_buttons == 2 or self.cruise_main_button == 8:
+      if self.cruise_buttons == 1 or self.cruise_buttons == 2 or self.cruise_main_button == 1:
         self.allow_nonscc_available = True
       ret.cruiseState.available = self.allow_nonscc_available != 0
       ret.cruiseState.enabled = ret.cruiseState.available
@@ -129,7 +127,7 @@ class CarState(CarStateBase):
     ret.cruiseState.standstill = cp_scc.vl["SCC11"]['SCCInfoDisplay'] == 4.
 
     self.is_set_speed_in_mph = cp.vl["CLU11"]["CF_Clu_SPEED_UNIT"]
-    if ret.cruiseState.enabled and self.cruise_main_button != 8:
+    if ret.cruiseState.enabled and self.cruise_main_button != 1:
       speed_conv = CV.MPH_TO_MS if self.is_set_speed_in_mph else CV.KPH_TO_MS
       if self.CP.radarOffCan:
         ret.cruiseState.speed = cp.vl["LVR12"]["CF_Lvr_CruiseSet"] * speed_conv
