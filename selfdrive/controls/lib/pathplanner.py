@@ -316,7 +316,7 @@ class PathPlanner():
     plan_send.pathPlan.steerRateCost = self.new_steer_rate_cost
     plan_send.pathPlan.outputScale = output_scale
 
-    if CP.standStill:
+    if sm['carState'].standStill:
       self.standstill_elapsed_time += DT_MDL
       if self.standstill_elapsed_time % 1 == 0:
         plan_send.pathPlan.standstillElapsedTime = int(self.standstill_elapsed_time)

@@ -203,7 +203,7 @@ struct CarState {
   radarDistance @41 :Float32;
   
   cruiseGapSet @43 :UInt8;
-  standStill @44: Bool;
+  standStill @44 :Bool;
 
   struct WheelSpeeds {
     # optional wheel speeds
@@ -457,6 +457,7 @@ struct CarParams {
   lvrAvailable @58: Bool;
   evgearAvailable @59: Bool;
   emsAvailable @60: Bool;
+  standStill @61: Bool;
 
   struct LateralParams {
     torqueBP @0 :List(Int32);

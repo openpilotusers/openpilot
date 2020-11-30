@@ -215,6 +215,8 @@ class CarInterface(CarInterfaceBase):
       if ret.fcaBus == 0:
         ret.fcaBus = -1
 
+    ret.standStill = False
+
     return ret
 
   def update(self, c, can_strings):
@@ -249,9 +251,9 @@ class CarInterface(CarInterfaceBase):
       events.add(EventName.emgButtonManual)
     if self.CC.acc_standstill_timer >= 200:
       events.add(EventName.standStill)
-      ret.standStill = True
+      self.CP.standStill = True
     else:
-      ret.standStill = False
+      self.CP.standStill = False
 
     buttonEvents = []
     if self.CS.cruise_buttons != self.CS.prev_cruise_buttons:
