@@ -700,6 +700,21 @@ static void ui_draw_driver_view(UIState *s) {
   ui_draw_circle_image(s->vg, x, y, face_size-5, s->img_face, scene->dmonitoring_state.getFaceDetected());
 }
 
+static void bb_ui_draw_UI(UIState *s)
+{
+  const UIScene *scene = &s->scene;
+  const int bb_dml_w = 180;
+  const int bb_dml_x = (scene->viz_rect.x + (bdr_s * 2));
+  const int bb_dml_y = (scene->viz_rect.y + (bdr_s * 1.5)) + 220;
+
+  const int bb_dmr_w = 180;
+  const int bb_dmr_x = scene->viz_rect.x + scene->viz_rect.w - bb_dmr_w - (bdr_s * 2);
+  const int bb_dmr_y = (scene->viz_rect.y + (bdr_s * 1.5)) + 220;
+
+  bb_ui_draw_measures_right(s, bb_dml_x, bb_dml_y, bb_dml_w);
+  bb_ui_draw_measures_left(s, bb_dmr_x, bb_dmr_y-20, bb_dmr_w);
+}
+
 static void ui_draw_vision_header(UIState *s) {
   const Rect &viz_rect = s->scene.viz_rect;
   NVGpaint gradient = nvgLinearGradient(s->vg, viz_rect.x,
@@ -1022,21 +1037,6 @@ static void bb_ui_draw_measures_right(UIState *s, int bb_x, int bb_y, int bb_w )
     nvgStrokeColor(s->vg, COLOR_WHITE_ALPHA(80));
     nvgStrokeWidth(s->vg, 6);
     nvgStroke(s->vg);
-}
-
-static void bb_ui_draw_UI(UIState *s)
-{
-  const UIScene *scene = &s->scene;
-  const int bb_dml_w = 180;
-  const int bb_dml_x = (scene->viz_rect.x + (bdr_s * 2));
-  const int bb_dml_y = (scene->viz_rect.y + (bdr_s * 1.5)) + 220;
-
-  const int bb_dmr_w = 180;
-  const int bb_dmr_x = scene->viz_rect.x + scene->viz_rect.w - bb_dmr_w - (bdr_s * 2);
-  const int bb_dmr_y = (scene->viz_rect.y + (bdr_s * 1.5)) + 220;
-
-  bb_ui_draw_measures_right(s, bb_dml_x, bb_dml_y, bb_dml_w);
-  bb_ui_draw_measures_left(s, bb_dmr_x, bb_dmr_y-20, bb_dmr_w);
 }
 
 //BB END: functions added for the display of various items
