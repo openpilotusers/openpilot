@@ -2,7 +2,7 @@ from cereal import car, log
 from common.numpy_fast import clip, interp
 from selfdrive.controls.lib.pid import LongPIDController
 
-from selfdrive.controls.lib.events import Events
+from selfdrive.config import Conversions as CV
 from common.params import Params
 
 import common.log as trace1
