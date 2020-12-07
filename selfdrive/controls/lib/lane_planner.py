@@ -1,6 +1,6 @@
 from common.numpy_fast import interp
 import numpy as np
-from cereal import log
+from cereal import car, log
 from common.params import Params
 
 CAMERA_OFFSET = int(Params().get('CameraOffsetAdj')) * 0.001  # m from center car to camera
@@ -70,6 +70,7 @@ class LanePlanner:
     Poly_differ = round(abs(self.l_poly[3] + self.r_poly[3]), 2)
 
     if int(Params().get('OpkrLatMode')) == 3 and v_ego > 8:
+      lean_offset = -0.03
       if curvature > 0.0008 and (self.l_poly[3] + self.r_poly[3]) <= 0.2: # left curve
         if Poly_differ > 0.6:
           Poly_differ = 0.6
