@@ -192,10 +192,10 @@ void draw_date_time(UIState *s) {
 
   // Draw the current date/time
 
-  int rect_w = 465;
-  int rect_h = 80;
-  int rect_x = (1920-rect_w)/2;
-  int rect_y = (1080-rect_h-10);
+  int rect_w = 425;
+  int rect_h = 70;
+  int rect_x = 1920-rect_w;
+  int rect_y = -42;
 
   // Get local time to display
   char now[50];
@@ -203,14 +203,14 @@ void draw_date_time(UIState *s) {
   snprintf(now,sizeof(now),"%04d/%02d/%02d  %02d:%02d:%02d", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
 
   nvgBeginPath(s->vg);
-    nvgRoundedRect(s->vg, rect_x, rect_y, rect_w, rect_h, 15);
-    nvgFillColor(s->vg, nvgRGBA(0, 0, 0, 100));
+    nvgRoundedRect(s->vg, rect_x, rect_y, rect_w, rect_h, 0);
+    nvgFillColor(s->vg, nvgRGBA(0, 0, 0, 0));
     nvgFill(s->vg);
-    nvgStrokeColor(s->vg, nvgRGBA(255,255,255,80));
-    nvgStrokeWidth(s->vg, 6);
+    nvgStrokeColor(s->vg, nvgRGBA(255,255,255,0));
+    nvgStrokeWidth(s->vg, 0);
     nvgStroke(s->vg);
 
-  nvgFontSize(s->vg, 60);
+  nvgFontSize(s->vg, 34);
     nvgFontFace(s->vg, "sans-semibold");
     nvgFillColor(s->vg, nvgRGBA(255, 255, 255, 200));
     nvgText(s->vg,rect_x+231,rect_y+55,now,NULL);
@@ -293,7 +293,7 @@ static void screen_draw_button(UIState *s, int touch_x, int touch_y) {
   }
 
   if (captureState == CAPTURE_STATE_CAPTURING) {
-    //draw_date_time(s);
+    draw_date_time(s);
 
     elapsed_time = get_time() - start_time;
 

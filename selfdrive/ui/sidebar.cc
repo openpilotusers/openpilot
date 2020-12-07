@@ -160,7 +160,7 @@ static void ui_draw_sidebar_panda_metric(UIState *s) {
 
 static void ui_draw_sidebar_connectivity(UIState *s) {
   static std::map<NetStatus, std::pair<const char *, int>> connectivity_map = {
-    {NET_ERROR, {"인터넷\n에러", 2}},
+    {NET_ERROR, {"인터넷\n접속오류", 2}},
     {NET_CONNECTED, {"인터넷\n온라인", 0}},
     {NET_DISCONNECTED, {"인터넷\n오프라인", 1}},
   };

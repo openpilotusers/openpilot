@@ -15,6 +15,8 @@ from selfdrive.controls.lib.fcw import FCWChecker
 from selfdrive.controls.lib.long_mpc import LongitudinalMpc
 from selfdrive.controls.lib.drive_helpers import V_CRUISE_MAX
 
+MAX_SPEED = 255.0
+
 LON_MPC_STEP = 0.2  # first step is 0.2s
 AWARENESS_DECEL = -0.2     # car smoothly decel at .2m/s^2 when user is distracted
 
@@ -39,15 +41,26 @@ _A_TOTAL_MAX_V = [3.5, 4.0, 5.0]
 _A_TOTAL_MAX_BP = [0., 25., 55.]
 
 
-def calc_cruise_accel_limits(v_ego, following, accelMode):
-  a_cruise_min = interp(v_ego, _A_CRUISE_MIN_BP, _A_CRUISE_MIN_V)
+def calc_cruise_accel_limits(v_ego, following, gas_button_status):
+  if following:
+    a_cruise_min = interp(v_ego, _A_CRUISE_MIN_BP, _A_CRUISE_MIN_V_FOLLOWING)
+  else:
+    if gas_button_status == 1:
+      a_cruise_min = interp(v_ego, _A_CRUISE_MIN_BP, _A_CRUISE_MIN_V_SPORT)
+    elif gas_button_status == 2:
+      a_cruise_min = interp(v_ego, _A_CRUISE_MIN_BP, _A_CRUISE_MIN_V_ECO)
+    else:
+      a_cruise_min = interp(v_ego, _A_CRUISE_MIN_BP, _A_CRUISE_MIN_V)
 
   if following:
     a_cruise_max = interp(v_ego, _A_CRUISE_MAX_BP, _A_CRUISE_MAX_V_FOLLOWING)
   else:
-    _A_CRUISE_MAX_V_MODE_LIST = [_A_CRUISE_MAX_V_ECO, _A_CRUISE_MAX_V, _A_CRUISE_MAX_V_SPORT]
-    _A_CRUISE_MAX_V_MODE_LIST_INDEX = min(max(int(accelMode), 0), (len(_A_CRUISE_MAX_V_MODE_LIST) - 1))
-    a_cruise_max = interp(v_ego, _A_CRUISE_MAX_BP, _A_CRUISE_MAX_V_MODE_LIST[_A_CRUISE_MAX_V_MODE_LIST_INDEX])
+    if gas_button_status == 1:
+      a_cruise_max = interp(v_ego, _A_CRUISE_MAX_BP, _A_CRUISE_MAX_V_SPORT)
+    elif gas_button_status == 2:
+      a_cruise_max = interp(v_ego, _A_CRUISE_MAX_BP, _A_CRUISE_MAX_V_ECO)
+    else:
+      a_cruise_max = interp(v_ego, _A_CRUISE_MAX_BP, _A_CRUISE_MAX_V)
   return np.vstack([a_cruise_min, a_cruise_max])
 
 
@@ -85,12 +98,17 @@ class Planner():
     self.path_x = np.arange(192)
 
     self.params = Params()
-    self.mpc_frame = 0
     self.first_loop = True
 
+    self.slow_on_curve = False
+    self.v_model = 0.0
+    self.a_model = 0.0
   def choose_solution(self, v_cruise_setpoint, enabled):
     if enabled:
-      solutions = {'cruise': self.v_cruise}
+      if self.slow_on_curve:
+        solutions = {'model': self.v_model, 'cruise': self.v_cruise}
+      else:
+        solutions = {'cruise': self.v_cruise}
       if self.mpc1.prev_lead_status:
         solutions['mpc1'] = self.mpc1.v_mpc
       if self.mpc2.prev_lead_status:
@@ -109,12 +127,18 @@ class Planner():
       elif slowest == 'cruise':
         self.v_acc = self.v_cruise
         self.a_acc = self.a_cruise
+      elif self.slow_on_curve and slowest == 'model':
+        self.v_acc = self.v_model
+        self.a_acc = self.a_model
 
     self.v_acc_future = min([self.mpc1.v_mpc_future, self.mpc2.v_mpc_future, v_cruise_setpoint])
 
   def update(self, sm, pm, CP, VM, PP):
     """Gets called when new radarState is available"""
     cur_time = sec_since_boot()
+    gas_button_status = int(self.params.get('OpkrAccMode'))
+    if eco_mode and gas_button_status == 0:
+      gas_button_status = 2
     v_ego = sm['carState'].vEgo
 
     long_control_state = sm['controlsState'].longControlState
@@ -130,12 +154,28 @@ class Planner():
     enabled = (long_control_state == LongCtrlState.pid) or (long_control_state == LongCtrlState.stopping)
     following = lead_1.status and lead_1.dRel < 45.0 and lead_1.vLeadK > v_ego and lead_1.aLeadK > 0.0
 
-    if self.mpc_frame % 1000 == 0:
-      self.params = Params()
-      self.mpc_frame = 0
-      
-    self.mpc_frame += 1
-    
+    self.slow_on_curve = self.params.get("OpkrSlowOnCurve", encoding='utf8') == "1"
+
+    if self.slow_on_curve and len(sm['model'].path.poly):
+      path = list(sm['model'].path.poly)
+
+      # Curvature of polynomial https://en.wikipedia.org/wiki/Curvature#Curvature_of_the_graph_of_a_function
+      # y = a x^3 + b x^2 + c x + d, y' = 3 a x^2 + 2 b x + c, y'' = 6 a x + 2 b
+      # k = y'' / (1 + y'^2)^1.5
+      # TODO: compute max speed without using a list of points and without numpy
+      y_p = 3 * path[0] * self.path_x**2 + 2 * path[1] * self.path_x + path[2]
+      y_pp = 6 * path[0] * self.path_x + 2 * path[1]
+      curv = y_pp / (1. + y_p**2)**1.5
+
+      a_y_max = 2.975 - v_ego * 0.0375  # ~1.85 @ 75mph, ~2.6 @ 25mph
+      v_curvature = np.sqrt(a_y_max / np.clip(np.abs(curv), 1e-4, None))
+      model_speed = np.min(v_curvature)
+      model_speed = max(20.0 * CV.MPH_TO_MS, model_speed)  # Don't slow down below 20mph
+    else:
+      model_speed = MAX_SPEED
+
+    # Calculate speed for normal cruise control
+    pedal_pressed = sm['carState'].gasPressed or sm['carState'].brakePressed
     # Calculate speed for normal cruise control
     if enabled and not self.first_loop and not sm['carState'].gasPressed:
       accel_limits = [float(x) for x in calc_cruise_accel_limits(v_ego, following, int(self.params.get('OpkrAccMode')))]
@@ -152,6 +192,11 @@ class Planner():
                                                     accel_limits_turns[1], accel_limits_turns[0],
                                                     jerk_limits[1], jerk_limits[0],
                                                     LON_MPC_STEP)
+      if self.slow_on_curve:
+        self.v_model, self.a_model = speed_smoother(self.v_acc_start, self.a_acc_start,
+                                                      model_speed, 2*accel_limits[1],
+                                                      accel_limits[0], 2*jerk_limits[1], jerk_limits[0],
+                                                      LON_MPC_STEP)
 
       # cruise speed can't be negative even is user is distracted
       self.v_cruise = max(self.v_cruise, 0.)

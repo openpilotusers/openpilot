@@ -39,6 +39,7 @@ void ui_init(UIState *s) {
   read_param(&s->nDebugUi2, "DebugUi2");
   read_param(&s->nOpkrBlindSpotDetect, "OpkrBlindSpotDetect");
   read_param(&s->lateral_control, "LateralControlMethod");
+  read_param(&s->slow_on_curve, "OpkrSlowOnCurve");
   read_param(&s->lat_mode, "OpkrLatMode");
   read_param(&s->acc_mode, "OpkrAccMode");
 
@@ -309,6 +310,7 @@ void update_sockets(UIState *s) {
     scene.tpmsPressureRl = data.getTpmsPressureRl();
     scene.tpmsPressureRr = data.getTpmsPressureRr();
     scene.radarDistance = data.getRadarDistance();
+    scene.standStill = data.getStandStill();
   }
 
   if (sm.updated("sensorEvents")) {
@@ -335,6 +337,7 @@ void update_sockets(UIState *s) {
     scene.pathPlan.angleOffset = data.getAngleOffset();
     scene.pathPlan.steerActuatorDelay = data.getSteerActuatorDelay();
     scene.pathPlan.steerRateCost = data.getSteerRateCost();
+    scene.pathPlan.standstillElapsedTime = data.getStandstillElapsedTime();
 
     auto l_list = data.getLPoly();
     auto r_list = data.getRPoly();
@@ -400,6 +403,7 @@ void ui_update(UIState *s) {
     read_param(&s->nOpkrAutoScreenOff, "OpkrAutoScreenOff");
     read_param(&s->nOpkrUIBrightness, "OpkrUIBrightness");
     read_param(&s->nOpkrUIVolumeBoost, "OpkrUIVolumeBoost");
+    read_param(&s->slow_on_curve, "OpkrSlowOnCurve");
     read_param(&s->nDebugUi1, "DebugUi1");
     read_param(&s->nDebugUi2, "DebugUi2");
     read_param(&s->nOpkrBlindSpotDetect, "OpkrBlindSpotDetect");

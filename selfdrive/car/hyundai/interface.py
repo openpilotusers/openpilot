@@ -51,17 +51,17 @@ class CarInterface(CarInterfaceBase):
     ret.steerRatio = int(params.get('SteerRatioAdj')) * 0.1
 
     ret.longitudinalTuning.kpBP = [0., 1., 10., 35.]
-    ret.longitudinalTuning.kpV = [1.0, 1.2, 0.8, 0.7]
-    ret.longitudinalTuning.kiBP = [0., 15., 35.]
-    ret.longitudinalTuning.kiV = [0.35, 0.25, 0.15]
+    ret.longitudinalTuning.kpV = [2.5, 0.7, 0.6, 0.55]
+    ret.longitudinalTuning.kiBP = [0., 1., 15., 35.]
+    ret.longitudinalTuning.kiV = [0.75, 0.3, 0.2, 0.1]
 
     ret.longitudinalTuning.deadzoneBP = [0.0, 0.5]
     ret.longitudinalTuning.deadzoneV = [0.00, 0.00]
   
     ret.gasMaxBP = [0., 1., 1.1, 15., 40.]
-    ret.gasMaxV = [2., 2., 2., 1.6, 1.4]
+    ret.gasMaxV = [2., 2., 2., 2., 2.]
     ret.brakeMaxBP = [0., 5.]
-    ret.brakeMaxV = [3.8, 3.8]
+    ret.brakeMaxV = [4.0, 4.0]
 
     ret.steerMaxV = [LqrSteerMaxV]
     ret.steerMaxBP = [0.]
@@ -250,7 +250,7 @@ class CarInterface(CarInterfaceBase):
     if self.CC.emergency_manual_timer:
       events.add(EventName.emgButtonManual)
     if self.CC.acc_standstill_timer >= 200:
-      events.add(EventName.standStill)
+      #events.add(EventName.standStill)
       self.CP.standStill = True
     else:
       self.CP.standStill = False
@@ -296,9 +296,9 @@ class CarInterface(CarInterfaceBase):
         if b.type == ButtonType.cancel and b.pressed:
           events.add(EventName.buttonCancel)
           events.add(EventName.pcmDisable)
-        if b.type == ButtonType.altButton3 and b.pressed:
-          events.add(EventName.buttonCancel)
-          events.add(EventName.pcmDisable)
+        #if b.type == ButtonType.altButton3 and b.pressed:
+          #events.add(EventName.buttonCancel)
+          #events.add(EventName.pcmDisable)
 
     ret.events = events.to_msg()
     self.CS.out = ret.as_reader()

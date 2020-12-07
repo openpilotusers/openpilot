@@ -320,8 +320,7 @@ static void ui_draw_world(UIState *s) {
   ui_draw_vision_lane_lines(s);
 
   // Draw lead indicators if openpilot is handling longitudinal
-  //if (s->longitudinal_control) {
-  if (true) {
+  if (s->longitudinal_control) {
     if (scene->lead_data[0].getStatus()) {
       draw_lead(s, scene->lead_data[0]);
     }
@@ -417,6 +416,29 @@ static void ui_draw_tpms(UIState *s) {
   }
 }
 
+static void ui_draw_standstill(UIState *s) {
+  UIScene &scene = s->scene;
+
+  int viz_standstill_x = s->scene.viz_rect.x + s->scene.viz_rect.w - 560;
+  int viz_standstill_y = s->scene.viz_rect.y + (bdr_s*1.5) + 160 + 250;
+  
+  int minute = 0;
+  int second = 0;
+
+  minute = int(scene.pathPlan.standstillElapsedTime / 60);
+  second = int(scene.pathPlan.standstillElapsedTime) - (minute * 60);
+
+  if (scene.standStill) {
+    nvgTextAlign(s->vg, NVG_ALIGN_CENTER | NVG_ALIGN_BASELINE);
+    nvgFontSize(s->vg, 125);
+    nvgFillColor(s->vg, COLOR_ORANGE_ALPHA(240));
+    ui_print(s, viz_standstill_x, viz_standstill_y, "잠시멈춤!");
+    nvgFontSize(s->vg, 150);
+    nvgFillColor(s->vg, COLOR_WHITE_ALPHA(240));
+    ui_print(s, viz_standstill_x, viz_standstill_y+150, "%01d:%02d", minute, second);
+  }
+}
+
 static void ui_draw_debug(UIState *s) 
 {
   UIScene &scene = s->scene;
@@ -444,41 +466,41 @@ static void ui_draw_debug(UIState *s)
     ui_print(s, ui_viz_rx, ui_viz_ry+270, "ADelay:%.2f", scene.pathPlan.steerActuatorDelay);
     ui_print(s, ui_viz_rx, ui_viz_ry+320, "SRCost:%.2f", scene.pathPlan.steerRateCost);
     ui_print(s, ui_viz_rx, ui_viz_ry+370, "OutScale:%.3f", scene.output_scale);
-    ui_print(s, ui_viz_rx, ui_viz_ry+420, "Awareness:%.2f", scene.awareness_status);
-    ui_print(s, ui_viz_rx, ui_viz_ry+470, "FaceProb:%.2f", scene.face_prob);
+    //ui_print(s, ui_viz_rx, ui_viz_ry+420, "Awareness:%.2f", scene.awareness_status);
+    //ui_print(s, ui_viz_rx, ui_viz_ry+470, "FaceProb:%.2f", scene.face_prob);
     if (s->lateral_control == 0) {
-      ui_print(s, ui_viz_rx, ui_viz_ry+520, "LaC:PID");
+      ui_print(s, ui_viz_rx, ui_viz_ry+420, "LaC:PID");
     } else if (s->lateral_control == 1) {
-      ui_print(s, ui_viz_rx, ui_viz_ry+520, "LaC:INDI");
+      ui_print(s, ui_viz_rx, ui_viz_ry+420, "LaC:INDI");
     } else if (s->lateral_control == 2) {
-      ui_print(s, ui_viz_rx, ui_viz_ry+520, "LaC:LQR");
+      ui_print(s, ui_viz_rx, ui_viz_ry+420, "LaC:LQR");
     }
     if (scene.long_plan_source == 0) {
-      ui_print(s, ui_viz_rx, ui_viz_ry+570, "LPS:none");
+      ui_print(s, ui_viz_rx, ui_viz_ry+470, "LPS:none");
     } else if (scene.long_plan_source == 1) {
-      ui_print(s, ui_viz_rx, ui_viz_ry+570, "LPS:cruise");
+      ui_print(s, ui_viz_rx, ui_viz_ry+470, "LPS:cruise");
     } else if (scene.long_plan_source == 2) {
-      ui_print(s, ui_viz_rx, ui_viz_ry+570, "LPS:mpc1");
+      ui_print(s, ui_viz_rx, ui_viz_ry+470, "LPS:mpc1");
     } else if (scene.long_plan_source == 3) {
-      ui_print(s, ui_viz_rx, ui_viz_ry+570, "LPS:mpc2");
+      ui_print(s, ui_viz_rx, ui_viz_ry+470, "LPS:mpc2");
     } else if (scene.long_plan_source == 4) {
-      ui_print(s, ui_viz_rx, ui_viz_ry+570, "LPS:mpc3");
+      ui_print(s, ui_viz_rx, ui_viz_ry+470, "LPS:mpc3");
     } else if (scene.long_plan_source == 5) {
-      ui_print(s, ui_viz_rx, ui_viz_ry+570, "LPS:model");
+      ui_print(s, ui_viz_rx, ui_viz_ry+470, "LPS:model");
     }
 
     nvgFontSize(s->vg, 45);
     nvgTextAlign(s->vg, NVG_ALIGN_CENTER | NVG_ALIGN_MIDDLE);
-    ui_print(s, ui_viz_rx_center, ui_viz_ry+650, "커브");
+    //ui_print(s, ui_viz_rx_center, ui_viz_ry+650, "커브");
     if (scene.curvature >= 0.001) {
-      ui_print(s, ui_viz_rx_center, ui_viz_ry+700, "↖%.4f　", abs(scene.curvature));
+      ui_print(s, ui_viz_rx_center, ui_viz_ry+650, "↖%.4f　", abs(scene.curvature));
     } else if (scene.curvature <= -0.001) {
-      ui_print(s, ui_viz_rx_center, ui_viz_ry+700, "　%.4f↗", abs(scene.curvature));
+      ui_print(s, ui_viz_rx_center, ui_viz_ry+650, "　%.4f↗", abs(scene.curvature));
     } else {
-      ui_print(s, ui_viz_rx_center, ui_viz_ry+700, "　%.4f　", abs(scene.curvature));
+      ui_print(s, ui_viz_rx_center, ui_viz_ry+650, "　%.4f　", abs(scene.curvature));
     }
-    ui_print(s, ui_viz_rx_center, ui_viz_ry+750, " 좌측간격(m)    차선폭(m)    우측간격(m)");
-    ui_print(s, ui_viz_rx_center, ui_viz_ry+800, "%.2f                    %.2f                    %.2f", scene.pathPlan.lPoly, scene.pathPlan.laneWidth, abs(scene.pathPlan.rPoly));
+    ui_print(s, ui_viz_rx_center, ui_viz_ry+700, " 좌측간격(m)    차선폭(m)    우측간격(m)");
+    ui_print(s, ui_viz_rx_center, ui_viz_ry+750, "%.2f                    %.2f                    %.2f", scene.pathPlan.lPoly, scene.pathPlan.laneWidth, abs(scene.pathPlan.rPoly));
   }
 }
 
@@ -550,7 +572,7 @@ static void ui_draw_vision_maxspeed(UIState *s) {
   const int text_x = viz_maxspeed_x + (viz_maxspeed_xo / 2) + (viz_maxspeed_w / 2);
   ui_draw_text(s->vg, text_x, 148, "설정속도", 26 * 2.2, COLOR_WHITE_ALPHA(is_cruise_set ? 200 : 100), s->font_sans_regular);
 
-  if (is_cruise_set && s->scene.controls_state.getEnabled()) {
+  if (is_cruise_set) {
     snprintf(maxspeed_str, sizeof(maxspeed_str), "%d", maxspeed_calc);
     ui_draw_text(s->vg, text_x, 242, maxspeed_str, 48 * 2.3, COLOR_WHITE, s->font_sans_bold);
   } else {
@@ -609,10 +631,10 @@ static void ui_draw_vision_event(UIState *s) {
   const int viz_event_w = 220;
   const int viz_event_x = s->scene.viz_rect.right() - (viz_event_w + bdr_s*2);
   const int viz_event_y = s->scene.viz_rect.y + (bdr_s*1.5);
-  if (s->scene.controls_state.getDecelForModel() && s->scene.controls_state.getEnabled() && false) {
+  if (s->scene.controls_state.getDecelForModel() && s->scene.controls_state.getEnabled()) {
     // draw winding road sign
-    const int img_turn_size = 170;
-    ui_draw_image(s->vg, viz_event_x + (img_turn_size / 4), viz_event_y + bdr_s - 25, img_turn_size, img_turn_size, s->img_turn, 1.0f);
+    const int img_turn_size = 160*1.5*0.75;
+    ui_draw_image(s->vg, viz_event_x - (img_turn_size / 4) + 80, viz_event_y + bdr_s - 25, img_turn_size, img_turn_size, s->img_turn, 1.0f);
   } else {
     // draw steering wheel
     const int bg_wheel_size = 90;
@@ -1010,8 +1032,7 @@ static void bb_ui_draw_measures_right(UIState *s, int bb_x, int bb_y, int bb_w )
 
 //BB END: functions added for the display of various items
 
-static void bb_ui_draw_UI(UIState *s)
-{
+static void bb_ui_draw_UI(UIState *s) {
   const UIScene *scene = &s->scene;
   const int bb_dml_w = 180;
   const int bb_dml_x = (scene->viz_rect.x + (bdr_s * 2));
@@ -1039,6 +1060,7 @@ static void ui_draw_vision_header(UIState *s) {
   ui_draw_vision_event(s);
   bb_ui_draw_UI(s);
   ui_draw_tpms(s);
+  ui_draw_standstill(s);
 }
 
 static void ui_draw_vision_car(UIState *s) {

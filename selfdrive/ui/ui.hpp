@@ -156,6 +156,7 @@ typedef struct UIScene {
   int lateralControlMethod;
   float radarDistance;
   int long_plan_source;
+  bool standStill;
 
   cereal::HealthData::HwType hwType;
   int satelliteCount;
@@ -197,6 +198,7 @@ typedef struct UIScene {
     float steerRatio;
     float steerActuatorDelay;
     float steerRateCost;
+    int standstillElapsedTime = 0;
 
     float cProb;
     float lProb;
@@ -278,7 +280,7 @@ typedef struct UIState {
   bool ignition;
   bool is_metric;
   bool longitudinal_control;
-
+  bool slow_on_curve;
   int is_OpenpilotViewEnabled;
   int lateral_control;
   int lat_mode;
