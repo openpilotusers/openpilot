@@ -137,8 +137,6 @@ class Planner():
     """Gets called when new radarState is available"""
     cur_time = sec_since_boot()
     gas_button_status = int(self.params.get('OpkrAccMode'))
-    if eco_mode and gas_button_status == 0:
-      gas_button_status = 2
     v_ego = sm['carState'].vEgo
 
     long_control_state = sm['controlsState'].longControlState
