@@ -162,7 +162,7 @@ static void ui_draw_track(UIState *s, const line_vertices_data &vd)
 
   int steerOverride = s->scene.car_state.getSteeringPressed();
   NVGpaint track_bg;
-  if (s->scene.controls_state.getEnabled()) {
+  if (s->scene.controls_state.getEnabled() && !s->scene.mlButtonEnabled) {
     if (steerOverride) {
       track_bg = nvgLinearGradient(s->vg, s->fb_w, s->fb_h, s->fb_w, s->fb_h*.4,
         COLOR_BLACK_ALPHA(80), COLOR_BLACK_ALPHA(20));
@@ -235,9 +235,11 @@ static void ui_draw_vision_lane_lines(UIState *s) {
         red_lvl = 1.0 ;
         green_lvl = 1.0 - (0.4 - scene.lane_line_probs[i]) * 2.5;
       }
-      NVGcolor color = nvgRGBAf(red_lvl, green_lvl, 0, 1);
-      //NVGcolor color = nvgRGBAf(1.0, 1.0, 1.0, scene.lane_line_probs[i]);
-      ui_draw_line(s, scene.lane_line_vertices[i], &color, nullptr);
+      NVGcolor lane_color = nvgRGBAf(red_lvl, green_lvl, 0, 1);
+      if (s->scene.mlButtonEnabled) {
+        lane_color = nvgRGBAf(1.0, 1.0, 1.0, scene.lane_line_probs[i]);
+      }
+      ui_draw_line(s, scene.lane_line_vertices[i], &lane_color, nullptr);
     }
 
     // paint road edges
@@ -531,7 +533,7 @@ static void ui_draw_vision_speed(UIState *s) {
   const int header_h2 = 400;
 
   // turning blinker from kegman, moving signal by OPKR
-  if(scene->leftBlinker) {
+  if(scene->leftBlinker && !s->scene.mlButtonEnabled) {
     nvgBeginPath(s->vg);
     nvgMoveTo(s->vg, viz_speed_x, viz_rect.y + header_h2/4);
     nvgLineTo(s->vg, viz_speed_x - viz_speed_w/2, viz_rect.y + header_h2/4 + header_h2/4);
@@ -556,7 +558,7 @@ static void ui_draw_vision_speed(UIState *s) {
     nvgFillColor(s->vg, nvgRGBA(255,230,70,(scene->blinker_blinkingrate<=80 && scene->blinker_blinkingrate>=50)?210:0));
     nvgFill(s->vg);
   }
-  if(scene->rightBlinker) {
+  if(scene->rightBlinker && !s->scene.mlButtonEnabled) {
     nvgBeginPath(s->vg);
     nvgMoveTo(s->vg, viz_speed_x+viz_speed_w, viz_rect.y + header_h2/4);
     nvgLineTo(s->vg, viz_speed_x+viz_speed_w + viz_speed_w/2, viz_rect.y + header_h2/4 + header_h2/4);
@@ -588,7 +590,7 @@ static void ui_draw_vision_speed(UIState *s) {
 
   NVGcolor val_color = COLOR_WHITE;
 
-  if( scene->brakePress ) val_color = COLOR_RED;
+  if( scene->brakePress && !s->scene.mlButtonEnabled ) val_color = COLOR_RED;
   else if( scene->brakeLights ) val_color = nvgRGBA(201, 34, 49, 100);
   nvgTextAlign(s->vg, NVG_ALIGN_CENTER | NVG_ALIGN_BASELINE);
   ui_draw_text(s, s->viz_rect.centerX(), 240, speed_str.c_str(), 96 * 2.5, val_color, "sans-bold");
@@ -600,7 +602,7 @@ static void ui_draw_vision_event(UIState *s) {
   const int viz_event_x = s->viz_rect.right() - (viz_event_w + bdr_s);
   const int viz_event_y = s->viz_rect.y + (bdr_s);
 
-  if (s->scene.limitSpeedCamera > 29) {
+  if (s->scene.limitSpeedCamera > 29 && !s->scene.mlButtonEnabled) {
     int img_speedlimit_growing_size_init = 0;
     int img_speedlimit_growing_size = 0;
     int img_speedlimit_size = 0;
@@ -626,7 +628,7 @@ static void ui_draw_vision_event(UIState *s) {
   }
   
   //draw compass by opkr
-  if (s->scene.gpsAccuracyUblox != 0.00) {
+  if (s->scene.gpsAccuracyUblox != 0.00 && !s->scene.mlButtonEnabled) {
     const int compass_x = s->viz_rect.x + s->viz_rect.w - 167 - (bdr_s);
     const int compass_y = (s->viz_rect.y + (bdr_s)) + 713;
     const int direction_x = compass_x + 74;
@@ -644,9 +646,9 @@ static void ui_draw_vision_event(UIState *s) {
     float angleSteers = s->scene.car_state.getSteeringAngleDeg();
     ui_draw_circle_image(s, bg_wheel_x, bg_wheel_y+20, bg_wheel_size, "wheel", color, 1.0f, angleSteers);
   } else {
-    ui_draw_gear(s);
+    if (!s->scene.mlButtonEnabled) ui_draw_gear(s);
   }
-  ui_draw_debug(s);
+  if (!s->scene.mlButtonEnabled) ui_draw_debug(s);
 }
 
 static void ui_draw_vision_face(UIState *s) {
@@ -1113,13 +1115,15 @@ static void ui_draw_vision_header(UIState *s) {
   ui_draw_vision_cruise_speed(s);
   ui_draw_vision_speed(s);
   ui_draw_vision_event(s);
-  bb_ui_draw_UI(s);
-  ui_draw_tpms(s);
+  if (!s->scene.mlButtonEnabled) {
+    bb_ui_draw_UI(s);
+    ui_draw_tpms(s);
+  }
   draw_navi_button(s);
   if (s->scene.end_to_end) {
     draw_laneless_button(s);
   }
-  if (s->scene.controls_state.getEnabled()) {
+  if (s->scene.controls_state.getEnabled() && !s->scene.mlButtonEnabled) {
     ui_draw_standstill(s);
   }
 }
@@ -1181,7 +1185,9 @@ static void ui_draw_vision_footer(UIState *s) {
   if (s->scene.model_long) {
     ui_draw_ml_button(s);
   }
-  ui_draw_vision_car(s);
+  if (!s->scene.mlButtonEnabled) {
+    ui_draw_vision_car(s);
+  }
 }
 
 static float get_alert_alpha(float blink_rate) {
