@@ -477,7 +477,7 @@ static void ui_draw_vision_maxspeed_org(UIState *s) {
   s->is_speed_over_limit = s->scene.limitSpeedCamera > 29 && ((s->scene.limitSpeedCamera+round(s->scene.limitSpeedCamera*0.01*s->scene.speed_lim_off))+1 < s->scene.car_state.getVEgo()*3.6);
   if (is_cruise_set && !s->scene.is_metric) { maxspeed *= 0.6225; }
 
-  const Rect rect = {s->viz_rect.x + (bdr_s * 2), int(s->viz_rect.y + (bdr_s * 1.5)), 184, 202};
+  const Rect rect = {s->viz_rect.x + (bdr_s), int(s->viz_rect.y + (bdr_s)), 184, 202};
   ui_fill_rect(s->vg, rect, COLOR_BLACK_ALPHA(100), 30.);
   ui_draw_rect(s->vg, rect, COLOR_WHITE_ALPHA(100), 10, 20.);
 
@@ -485,20 +485,20 @@ static void ui_draw_vision_maxspeed_org(UIState *s) {
   if (cruise_speed >= 30 && s->scene.controls_state.getEnabled()) {
     const std::string cruise_speed_str = std::to_string((int)std::nearbyint(cruise_speed));
     if (s->is_speed_over_limit) {
-      ui_draw_text(s, rect.centerX(), 148, cruise_speed_str.c_str(), 26 * 2.5, COLOR_ORANGE_ALPHA(is_cruise_set ? 200 : 100), "sans-regular");
+      ui_draw_text(s, rect.centerX(), 148, cruise_speed_str.c_str(), 26 * 2.3, COLOR_ORANGE_ALPHA(is_cruise_set ? 200 : 100), "sans-regular");
     } else if (s->scene.cruiseAccStatus) {
-      ui_draw_text(s, rect.centerX(), 148, cruise_speed_str.c_str(), 26 * 2.5, COLOR_BLUE_ALPHA(is_cruise_set ? 200 : 100), "sans-regular");
+      ui_draw_text(s, rect.centerX(), 148, cruise_speed_str.c_str(), 26 * 2.3, COLOR_BLUE_ALPHA(is_cruise_set ? 200 : 100), "sans-regular");
     } else {
-      ui_draw_text(s, rect.centerX(), 148, cruise_speed_str.c_str(), 26 * 2.5, COLOR_WHITE_ALPHA(is_cruise_set ? 200 : 100), "sans-regular");
+      ui_draw_text(s, rect.centerX(), 148, cruise_speed_str.c_str(), 26 * 2.3, COLOR_WHITE_ALPHA(is_cruise_set ? 200 : 100), "sans-regular");
     }
   } else {
-  	ui_draw_text(s, rect.centerX(), 148, "-", 26 * 2.5, COLOR_WHITE_ALPHA(is_cruise_set ? 200 : 100), "sans-regular");
+  	ui_draw_text(s, rect.centerX(), 148, "-", 26 * 2.3, COLOR_WHITE_ALPHA(is_cruise_set ? 200 : 100), "sans-regular");
   }
   if (is_cruise_set) {
     const std::string maxspeed_str = std::to_string((int)std::nearbyint(maxspeed));
-    ui_draw_text(s, rect.centerX(), 242, maxspeed_str.c_str(), 48 * 2.5, COLOR_WHITE, "sans-bold");
+    ui_draw_text(s, rect.centerX(), 242, maxspeed_str.c_str(), 48 * 2.35, COLOR_WHITE, "sans-bold");
   } else {
-    ui_draw_text(s, rect.centerX(), 242, "-", 42 * 2.5, COLOR_WHITE_ALPHA(100), "sans-semibold");
+    ui_draw_text(s, rect.centerX(), 242, "-", 42 * 2.35, COLOR_WHITE_ALPHA(100), "sans-semibold");
   }
 }
 
@@ -1146,10 +1146,10 @@ static void ui_draw_vision_header(UIState *s) {
 
   if (!s->scene.mlButtonEnabled) {
     ui_draw_vision_maxspeed(s);
+    ui_draw_vision_cruise_speed(s);
   } else {
     ui_draw_vision_maxspeed_org(s);
   }
-  ui_draw_vision_cruise_speed(s);
   ui_draw_vision_speed(s);
   ui_draw_vision_event(s);
   if (!s->scene.mlButtonEnabled) {
