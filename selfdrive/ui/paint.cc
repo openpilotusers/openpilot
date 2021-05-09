@@ -478,27 +478,37 @@ static void ui_draw_vision_maxspeed_org(UIState *s) {
   if (is_cruise_set && !s->scene.is_metric) { maxspeed *= 0.6225; }
 
   const Rect rect = {s->viz_rect.x + (bdr_s), int(s->viz_rect.y + (bdr_s)), 184, 202};
-  ui_fill_rect(s->vg, rect, COLOR_BLACK_ALPHA(100), 30.);
+  NVGcolor color = COLOR_BLACK_ALPHA(100);
+  if (s->is_speed_over_limit) {
+    color = COLOR_OCHRE_ALPHA(150);
+  } else if (s->scene.limitSpeedCamera > 29 && !s->is_speed_over_limit) {
+    color = nvgRGBA(0, 120, 0, 150);
+  } else if (s->scene.cruiseAccStatus) {
+    color = nvgRGBA(0, 100, 200, 150);
+  } else if (s->scene.controls_state.getEnabled()) {
+    color = COLOR_WHITE_ALPHA(75);
+  }
+  ui_fill_rect(s->vg, rect, color, 30.);
   ui_draw_rect(s->vg, rect, COLOR_WHITE_ALPHA(100), 10, 20.);
 
   nvgTextAlign(s->vg, NVG_ALIGN_CENTER | NVG_ALIGN_BASELINE);
   if (cruise_speed >= 30 && s->scene.controls_state.getEnabled()) {
     const std::string cruise_speed_str = std::to_string((int)std::nearbyint(cruise_speed));
     if (s->is_speed_over_limit) {
-      ui_draw_text(s, rect.centerX(), int(s->viz_rect.y + (bdr_s))+65, cruise_speed_str.c_str(), 26 * 2.25, COLOR_ORANGE_ALPHA(is_cruise_set ? 200 : 100), "sans-regular");
+      ui_draw_text(s, rect.centerX(), int(s->viz_rect.y + (bdr_s))+65, cruise_speed_str.c_str(), 26 * 2.3, COLOR_ORANGE_ALPHA(is_cruise_set ? 200 : 100), "sans-bold");
     } else if (s->scene.cruiseAccStatus) {
-      ui_draw_text(s, rect.centerX(), int(s->viz_rect.y + (bdr_s))+65, cruise_speed_str.c_str(), 26 * 2.25, COLOR_BLUE_ALPHA(is_cruise_set ? 200 : 100), "sans-regular");
+      ui_draw_text(s, rect.centerX(), int(s->viz_rect.y + (bdr_s))+65, cruise_speed_str.c_str(), 26 * 2.3, COLOR_BLUE_ALPHA(is_cruise_set ? 200 : 100), "sans-bold");
     } else {
-      ui_draw_text(s, rect.centerX(), int(s->viz_rect.y + (bdr_s))+65, cruise_speed_str.c_str(), 26 * 2.25, COLOR_WHITE_ALPHA(is_cruise_set ? 200 : 100), "sans-regular");
+      ui_draw_text(s, rect.centerX(), int(s->viz_rect.y + (bdr_s))+65, cruise_speed_str.c_str(), 26 * 2.3, COLOR_WHITE_ALPHA(is_cruise_set ? 200 : 100), "sans-bold");
     }
   } else {
-  	ui_draw_text(s, rect.centerX(), int(s->viz_rect.y + (bdr_s))+65, "-", 26 * 2.25, COLOR_WHITE_ALPHA(is_cruise_set ? 200 : 100), "sans-regular");
+  	ui_draw_text(s, rect.centerX(), int(s->viz_rect.y + (bdr_s))+65, "-", 26 * 2.3, COLOR_WHITE_ALPHA(is_cruise_set ? 200 : 100), "sans-semibold");
   }
   if (is_cruise_set) {
     const std::string maxspeed_str = std::to_string((int)std::nearbyint(maxspeed));
-    ui_draw_text(s, rect.centerX(), int(s->viz_rect.y + (bdr_s))+165, maxspeed_str.c_str(), 48 * 2.35, COLOR_WHITE, "sans-bold");
+    ui_draw_text(s, rect.centerX(), int(s->viz_rect.y + (bdr_s))+165, maxspeed_str.c_str(), 48 * 2.4, COLOR_WHITE, "sans-bold");
   } else {
-    ui_draw_text(s, rect.centerX(), int(s->viz_rect.y + (bdr_s))+165, "-", 42 * 2.35, COLOR_WHITE_ALPHA(100), "sans-semibold");
+    ui_draw_text(s, rect.centerX(), int(s->viz_rect.y + (bdr_s))+165, "-", 42 * 2.4, COLOR_WHITE_ALPHA(100), "sans-semibold");
   }
 }
 
