@@ -485,20 +485,20 @@ static void ui_draw_vision_maxspeed_org(UIState *s) {
   if (cruise_speed >= 30 && s->scene.controls_state.getEnabled()) {
     const std::string cruise_speed_str = std::to_string((int)std::nearbyint(cruise_speed));
     if (s->is_speed_over_limit) {
-      ui_draw_text(s, rect.centerX(), 148, cruise_speed_str.c_str(), 26 * 2.3, COLOR_ORANGE_ALPHA(is_cruise_set ? 200 : 100), "sans-regular");
+      ui_draw_text(s, rect.centerX(), int(s->viz_rect.y + (bdr_s))+65, cruise_speed_str.c_str(), 26 * 2.25, COLOR_ORANGE_ALPHA(is_cruise_set ? 200 : 100), "sans-regular");
     } else if (s->scene.cruiseAccStatus) {
-      ui_draw_text(s, rect.centerX(), 148, cruise_speed_str.c_str(), 26 * 2.3, COLOR_BLUE_ALPHA(is_cruise_set ? 200 : 100), "sans-regular");
+      ui_draw_text(s, rect.centerX(), int(s->viz_rect.y + (bdr_s))+65, cruise_speed_str.c_str(), 26 * 2.25, COLOR_BLUE_ALPHA(is_cruise_set ? 200 : 100), "sans-regular");
     } else {
-      ui_draw_text(s, rect.centerX(), 148, cruise_speed_str.c_str(), 26 * 2.3, COLOR_WHITE_ALPHA(is_cruise_set ? 200 : 100), "sans-regular");
+      ui_draw_text(s, rect.centerX(), int(s->viz_rect.y + (bdr_s))+65, cruise_speed_str.c_str(), 26 * 2.25, COLOR_WHITE_ALPHA(is_cruise_set ? 200 : 100), "sans-regular");
     }
   } else {
-  	ui_draw_text(s, rect.centerX(), 148, "-", 26 * 2.3, COLOR_WHITE_ALPHA(is_cruise_set ? 200 : 100), "sans-regular");
+  	ui_draw_text(s, rect.centerX(), int(s->viz_rect.y + (bdr_s))+65, "-", 26 * 2.25, COLOR_WHITE_ALPHA(is_cruise_set ? 200 : 100), "sans-regular");
   }
   if (is_cruise_set) {
     const std::string maxspeed_str = std::to_string((int)std::nearbyint(maxspeed));
-    ui_draw_text(s, rect.centerX(), 242, maxspeed_str.c_str(), 48 * 2.35, COLOR_WHITE, "sans-bold");
+    ui_draw_text(s, rect.centerX(), int(s->viz_rect.y + (bdr_s))+165, maxspeed_str.c_str(), 48 * 2.35, COLOR_WHITE, "sans-bold");
   } else {
-    ui_draw_text(s, rect.centerX(), 242, "-", 42 * 2.35, COLOR_WHITE_ALPHA(100), "sans-semibold");
+    ui_draw_text(s, rect.centerX(), int(s->viz_rect.y + (bdr_s))+165, "-", 42 * 2.35, COLOR_WHITE_ALPHA(100), "sans-semibold");
   }
 }
 
