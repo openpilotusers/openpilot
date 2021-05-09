@@ -637,6 +637,14 @@ EVENTS: Dict[int, Dict[str, Union[Alert, Callable[[Any, messaging.SubMaster, boo
     ET.NO_ENTRY: NoEntryAlert("조향제어가 일시적으로 비활성화 되었습니다",
                               duration_hud_alert=0.),
   },
+  
+  EventName.isgActive: {
+    ET.WARNING: Alert(
+      "조향제어 일시정지, ISG 작동 중",
+      "",
+      AlertStatus.normal, AlertSize.small,
+      Priority.LOW, VisualAlert.none, AudibleAlert.none, .0, .1, .1, alert_rate=0.75),
+  },
 
   EventName.outOfSpace: {
     ET.PERMANENT: Alert(
