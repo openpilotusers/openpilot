@@ -179,6 +179,7 @@ class Controls:
     self.steerRatio_to_send = 0
     
     self.model_long_alert_prev = True
+    self.delayed_comm_issue_timer = 0
 
   def auto_enable(self, CS):
     if self.state != State.enabled and CS.vEgo >= 3 * CV.KPH_TO_MS and CS.gearShifter == 2 and self.sm['liveCalibration'].calStatus != Calibration.UNCALIBRATED:
@@ -258,12 +259,15 @@ class Controls:
     if len(self.sm['radarState'].radarErrors):
       self.events.add(EventName.radarFault)
     elif not self.sm.all_alive_and_valid() and self.sm['pandaState'].pandaType != PandaType.whitePanda and not self.commIssue_ignored:
-      self.events.add(EventName.commIssue)
+      self.delayed_comm_issue_timer += 1
+      if self.delayed_comm_issue_timer > 100:
+        self.events.add(EventName.commIssue)
       if not self.logged_comm_issue:
         cloudlog.error(f"commIssue - valid: {self.sm.valid} - alive: {self.sm.alive}")
         self.logged_comm_issue = True
     else:
       self.logged_comm_issue = False
+      self.delayed_comm_issue_timer = 0
 
     if not self.sm['lateralPlan'].mpcSolutionValid and not (EventName.laneChangeManual in self.events.names) and CS.steeringAngleDeg < 15:
       self.events.add(EventName.plannerError)

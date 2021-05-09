@@ -730,9 +730,14 @@ EVENTS: Dict[int, Dict[str, Union[Alert, Callable[[Any, messaging.SubMaster, boo
   },
 
   EventName.commIssue: {
-    ET.SOFT_DISABLE: SoftDisableAlert("프로세스 간 통신 오류가 있습니다"),
-    ET.NO_ENTRY: NoEntryAlert("프로세스 간 통신 오류가 있습니다",
-                              audible_alert=AudibleAlert.none),
+    ET.WARNING: Alert(
+      "핸들을 잡아주세요",
+      "프로세스 간 통신 오류가 있습니다",
+      AlertStatus.userPrompt, AlertSize.mid,
+      Priority.LOW, VisualAlert.none, AudibleAlert.chimePrompt, 1., 1., 1.),
+    #ET.SOFT_DISABLE: SoftDisableAlert("프로세스 간 통신 오류가 있습니다"),
+    #ET.NO_ENTRY: NoEntryAlert("프로세스 간 통신 오류가 있습니다",
+    #                          audible_alert=AudibleAlert.none),
   },
 
   EventName.processNotRunning: {
