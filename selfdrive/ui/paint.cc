@@ -122,11 +122,14 @@ static void draw_lead(UIState *s, int idx) {
   float sz = std::clamp((25 * 30) / (d_rel / 3 + 30), 15.0f, 30.0f) * s->zoom;
   x = std::clamp(x, 0.f, s->viz_rect.right() - sz / 2);
   y = std::fmin(s->viz_rect.bottom() - sz * .6, y);
+  nvgTextAlign(s->vg, NVG_ALIGN_CENTER | NVG_ALIGN_MIDDLE);
 
   if (s->scene.radarDistance < 149) {
     draw_chevron(s, x, y, sz, nvgRGBA(201, 34, 49, fillAlpha), COLOR_YELLOW);
+    ui_draw_text(s, x, y + sz/1.5f, "R", 20 * 2.5, COLOR_WHITE, "sans-bold"); //neokii
   } else {
     draw_chevron(s, x, y, sz, nvgRGBA(165, 255, 135, fillAlpha), COLOR_GREEN);
+    ui_draw_text(s, x, y + sz/1.5f, "C", 20 * 2.5, COLOR_BLACK, "sans-bold"); //hoya
   }
 }
 
@@ -737,6 +740,7 @@ static void ui_draw_driver_view(UIState *s) {
   ui_draw_circle_image(s, center_x, center_y, face_radius, "driver_face", face_detected);
 }
 
+// Model Long does not work well. Sometimes it works unexpectedly. So it is disabled for now.
 // static void ui_draw_ml_button(UIState *s) {
 //   int btn_w = 140;
 //   int btn_h = 140;
