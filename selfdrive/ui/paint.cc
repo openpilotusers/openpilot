@@ -162,7 +162,7 @@ static void ui_draw_track(UIState *s, const line_vertices_data &vd)
 
   int steerOverride = s->scene.car_state.getSteeringPressed();
   NVGpaint track_bg;
-  if (s->scene.controls_state.getEnabled() && !s->scene.mlButtonEnabled) {
+  if (s->scene.controls_state.getEnabled() && !s->scene.comma_stock_ui) {
     if (steerOverride) {
       track_bg = nvgLinearGradient(s->vg, s->fb_w, s->fb_h, s->fb_w, s->fb_h*.4,
         COLOR_BLACK_ALPHA(80), COLOR_BLACK_ALPHA(20));
@@ -236,7 +236,7 @@ static void ui_draw_vision_lane_lines(UIState *s) {
         green_lvl = 1.0 - (0.4 - scene.lane_line_probs[i]) * 2.5;
       }
       NVGcolor lane_color = nvgRGBAf(red_lvl, green_lvl, 0, 1);
-      if (s->scene.mlButtonEnabled) {
+      if (s->scene.comma_stock_ui) {
         lane_color = nvgRGBAf(1.0, 1.0, 1.0, scene.lane_line_probs[i]);
       }
       ui_draw_line(s, scene.lane_line_vertices[i], &lane_color, nullptr);
@@ -480,11 +480,11 @@ static void ui_draw_vision_maxspeed_org(UIState *s) {
   const Rect rect = {s->viz_rect.x + (bdr_s), int(s->viz_rect.y + (bdr_s)), 184, 202};
   NVGcolor color = COLOR_BLACK_ALPHA(100);
   if (s->is_speed_over_limit) {
-    color = COLOR_OCHRE_ALPHA(150);
+    color = COLOR_OCHRE_ALPHA(100);
   } else if (s->scene.limitSpeedCamera > 29 && !s->is_speed_over_limit) {
-    color = nvgRGBA(0, 120, 0, 150);
+    color = nvgRGBA(0, 120, 0, 100);
   } else if (s->scene.cruiseAccStatus) {
-    color = nvgRGBA(0, 100, 200, 150);
+    color = nvgRGBA(0, 100, 200, 100);
   } else if (s->scene.controls_state.getEnabled()) {
     color = COLOR_WHITE_ALPHA(75);
   }
@@ -494,15 +494,9 @@ static void ui_draw_vision_maxspeed_org(UIState *s) {
   nvgTextAlign(s->vg, NVG_ALIGN_CENTER | NVG_ALIGN_BASELINE);
   if (cruise_speed >= 30 && s->scene.controls_state.getEnabled()) {
     const std::string cruise_speed_str = std::to_string((int)std::nearbyint(cruise_speed));
-    if (s->is_speed_over_limit) {
-      ui_draw_text(s, rect.centerX(), int(s->viz_rect.y + (bdr_s))+65, cruise_speed_str.c_str(), 26 * 2.3, COLOR_ORANGE_ALPHA(is_cruise_set ? 200 : 100), "sans-bold");
-    } else if (s->scene.cruiseAccStatus) {
-      ui_draw_text(s, rect.centerX(), int(s->viz_rect.y + (bdr_s))+65, cruise_speed_str.c_str(), 26 * 2.3, COLOR_BLUE_ALPHA(is_cruise_set ? 200 : 100), "sans-bold");
-    } else {
-      ui_draw_text(s, rect.centerX(), int(s->viz_rect.y + (bdr_s))+65, cruise_speed_str.c_str(), 26 * 2.3, COLOR_WHITE_ALPHA(is_cruise_set ? 200 : 100), "sans-bold");
-    }
+    ui_draw_text(s, rect.centerX(), int(s->viz_rect.y + (bdr_s))+65, cruise_speed_str.c_str(), 26 * 2.4, COLOR_WHITE_ALPHA(is_cruise_set ? 200 : 100), "sans-bold");
   } else {
-  	ui_draw_text(s, rect.centerX(), int(s->viz_rect.y + (bdr_s))+65, "-", 26 * 2.3, COLOR_WHITE_ALPHA(is_cruise_set ? 200 : 100), "sans-semibold");
+  	ui_draw_text(s, rect.centerX(), int(s->viz_rect.y + (bdr_s))+65, "-", 26 * 2.4, COLOR_WHITE_ALPHA(is_cruise_set ? 200 : 100), "sans-semibold");
   }
   if (is_cruise_set) {
     const std::string maxspeed_str = std::to_string((int)std::nearbyint(maxspeed));
@@ -576,7 +570,7 @@ static void ui_draw_vision_speed(UIState *s) {
   const int header_h2 = 400;
 
   // turning blinker from kegman, moving signal by OPKR
-  if(scene->leftBlinker && !s->scene.mlButtonEnabled) {
+  if(scene->leftBlinker && !s->scene.comma_stock_ui) {
     nvgBeginPath(s->vg);
     nvgMoveTo(s->vg, viz_speed_x, viz_rect.y + header_h2/4);
     nvgLineTo(s->vg, viz_speed_x - viz_speed_w/2, viz_rect.y + header_h2/4 + header_h2/4);
@@ -601,7 +595,7 @@ static void ui_draw_vision_speed(UIState *s) {
     nvgFillColor(s->vg, nvgRGBA(255,230,70,(scene->blinker_blinkingrate<=80 && scene->blinker_blinkingrate>=50)?210:0));
     nvgFill(s->vg);
   }
-  if(scene->rightBlinker && !s->scene.mlButtonEnabled) {
+  if(scene->rightBlinker && !s->scene.comma_stock_ui) {
     nvgBeginPath(s->vg);
     nvgMoveTo(s->vg, viz_speed_x+viz_speed_w, viz_rect.y + header_h2/4);
     nvgLineTo(s->vg, viz_speed_x+viz_speed_w + viz_speed_w/2, viz_rect.y + header_h2/4 + header_h2/4);
@@ -633,8 +627,8 @@ static void ui_draw_vision_speed(UIState *s) {
 
   NVGcolor val_color = COLOR_WHITE;
 
-  if( scene->brakePress && !s->scene.mlButtonEnabled ) val_color = COLOR_RED;
-  else if( scene->brakeLights && !s->scene.mlButtonEnabled ) val_color = nvgRGBA(201, 34, 49, 100);
+  if( scene->brakePress && !s->scene.comma_stock_ui ) val_color = COLOR_RED;
+  else if( scene->brakeLights && !s->scene.comma_stock_ui ) val_color = nvgRGBA(201, 34, 49, 100);
   nvgTextAlign(s->vg, NVG_ALIGN_CENTER | NVG_ALIGN_BASELINE);
   ui_draw_text(s, s->viz_rect.centerX(), 240, speed_str.c_str(), 96 * 2.5, val_color, "sans-bold");
   ui_draw_text(s, s->viz_rect.centerX(), 320, s->scene.is_metric ? "km/h" : "mph", 36 * 2.5, COLOR_WHITE_ALPHA(200), "sans-regular");
@@ -645,7 +639,7 @@ static void ui_draw_vision_event(UIState *s) {
   const int viz_event_x = s->viz_rect.right() - (viz_event_w + bdr_s);
   const int viz_event_y = s->viz_rect.y + (bdr_s);
 
-  if (s->scene.limitSpeedCamera > 29 && !s->scene.mlButtonEnabled) {
+  if (s->scene.limitSpeedCamera > 29 && !s->scene.comma_stock_ui) {
     int img_speedlimit_growing_size_init = 0;
     int img_speedlimit_growing_size = 0;
     int img_speedlimit_size = 0;
@@ -671,7 +665,7 @@ static void ui_draw_vision_event(UIState *s) {
   }
   
   //draw compass by opkr
-  if (s->scene.gpsAccuracyUblox != 0.00 && !s->scene.mlButtonEnabled) {
+  if (s->scene.gpsAccuracyUblox != 0.00 && !s->scene.comma_stock_ui) {
     const int compass_x = s->viz_rect.x + s->viz_rect.w - 167 - (bdr_s);
     const int compass_y = (s->viz_rect.y + (bdr_s)) + 713;
     const int direction_x = compass_x + 74;
@@ -685,13 +679,13 @@ static void ui_draw_vision_event(UIState *s) {
   const int bg_wheel_x = viz_event_x + (viz_event_w-bg_wheel_size);
   const int bg_wheel_y = viz_event_y + (bg_wheel_size/2);
   const NVGcolor color = bg_colors[s->status];
-  if (s->scene.controls_state.getEnabled() || s->scene.forceGearD || s->scene.mlButtonEnabled){
+  if (s->scene.controls_state.getEnabled() || s->scene.forceGearD || s->scene.comma_stock_ui){
     float angleSteers = s->scene.car_state.getSteeringAngleDeg();
     ui_draw_circle_image(s, bg_wheel_x, bg_wheel_y+20, bg_wheel_size, "wheel", color, 1.0f, angleSteers);
   } else {
-    if (!s->scene.mlButtonEnabled) ui_draw_gear(s);
+    if (!s->scene.comma_stock_ui) ui_draw_gear(s);
   }
-  if (!s->scene.mlButtonEnabled) ui_draw_debug(s);
+  if (!s->scene.comma_stock_ui) ui_draw_debug(s);
 }
 
 static void ui_draw_vision_face(UIState *s) {
@@ -743,34 +737,34 @@ static void ui_draw_driver_view(UIState *s) {
   ui_draw_circle_image(s, center_x, center_y, face_radius, "driver_face", face_detected);
 }
 
-static void ui_draw_ml_button(UIState *s) {
-  int btn_w = 140;
-  int btn_h = 140;
-  int btn_x = s->viz_rect.x + s->viz_rect.w - btn_w - 515;
-  int btn_y = 1080 - btn_h - 35;
-  int btn_xc = btn_x + (btn_w/2);
-  int btn_yc = btn_y + (btn_h/2);
-  nvgBeginPath(s->vg);
-  nvgRoundedRect(s->vg, btn_x, btn_y, btn_w, btn_h, 100);
-  if (s->scene.mlButtonEnabled) {
-    nvgStrokeColor(s->vg, nvgRGBA(55, 184, 104, 255));
-  } else {
-    nvgStrokeColor(s->vg, nvgRGBA(255,10,10,80));
-  }
-  nvgStrokeWidth(s->vg, 6);
-  nvgStroke(s->vg);
+// static void ui_draw_ml_button(UIState *s) {
+//   int btn_w = 140;
+//   int btn_h = 140;
+//   int btn_x = s->viz_rect.x + s->viz_rect.w - btn_w - 515;
+//   int btn_y = 1080 - btn_h - 35;
+//   int btn_xc = btn_x + (btn_w/2);
+//   int btn_yc = btn_y + (btn_h/2);
+//   nvgBeginPath(s->vg);
+//   nvgRoundedRect(s->vg, btn_x, btn_y, btn_w, btn_h, 100);
+//   if (s->scene.mlButtonEnabled) {
+//     nvgStrokeColor(s->vg, nvgRGBA(55, 184, 104, 255));
+//   } else {
+//     nvgStrokeColor(s->vg, nvgRGBA(255,10,10,80));
+//   }
+//   nvgStrokeWidth(s->vg, 6);
+//   nvgStroke(s->vg);
 
-  nvgTextAlign(s->vg, NVG_ALIGN_CENTER | NVG_ALIGN_MIDDLE);
-  nvgFontSize(s->vg, 45);
-  if (s->scene.mlButtonEnabled) {
-    nvgFillColor(s->vg, nvgRGBA(55, 184, 104, 255));
-    nvgFontSize(s->vg, 55);
-    nvgText(s->vg,btn_xc,btn_yc,"MDL",NULL);
-  } else {
-    nvgFillColor(s->vg, nvgRGBA(255,255,255,200));
-    nvgText(s->vg,btn_xc,btn_yc,"MDL",NULL);
-  }
-}
+//   nvgTextAlign(s->vg, NVG_ALIGN_CENTER | NVG_ALIGN_MIDDLE);
+//   nvgFontSize(s->vg, 45);
+//   if (s->scene.mlButtonEnabled) {
+//     nvgFillColor(s->vg, nvgRGBA(55, 184, 104, 255));
+//     nvgFontSize(s->vg, 55);
+//     nvgText(s->vg,btn_xc,btn_yc,"MDL",NULL);
+//   } else {
+//     nvgFillColor(s->vg, nvgRGBA(255,255,255,200));
+//     nvgText(s->vg,btn_xc,btn_yc,"MDL",NULL);
+//   }
+// }
 
 //BB START: functions added for the display of various items
 static int bb_ui_draw_measure(UIState *s, const char* bb_value, const char* bb_uom, const char* bb_label,
@@ -1154,7 +1148,7 @@ static void ui_draw_vision_header(UIState *s) {
 
   ui_fill_rect(s->vg, {s->viz_rect.x, s->viz_rect.y, s->viz_rect.w, header_h}, gradient);
 
-  if (!s->scene.mlButtonEnabled) {
+  if (!s->scene.comma_stock_ui) {
     ui_draw_vision_maxspeed(s);
     ui_draw_vision_cruise_speed(s);
   } else {
@@ -1162,15 +1156,15 @@ static void ui_draw_vision_header(UIState *s) {
   }
   ui_draw_vision_speed(s);
   ui_draw_vision_event(s);
-  if (!s->scene.mlButtonEnabled) {
+  if (!s->scene.comma_stock_ui) {
     bb_ui_draw_UI(s);
     ui_draw_tpms(s);
+    draw_navi_button(s);
   }
-  draw_navi_button(s);
-  if (s->scene.end_to_end) {
+  if (s->scene.end_to_end && !s->scene.comma_stock_ui) {
     draw_laneless_button(s);
   }
-  if (s->scene.controls_state.getEnabled() && !s->scene.mlButtonEnabled) {
+  if (s->scene.controls_state.getEnabled() && !s->scene.comma_stock_ui) {
     ui_draw_standstill(s);
   }
 }
@@ -1229,10 +1223,10 @@ static void ui_draw_vision_car(UIState *s) {
 
 static void ui_draw_vision_footer(UIState *s) {
   ui_draw_vision_face(s);
-  if (s->scene.model_long) {
-    ui_draw_ml_button(s);
-  }
-  if (!s->scene.mlButtonEnabled) {
+  // if (s->scene.model_long && !s->scene.comma_stock_ui) {
+  //   ui_draw_ml_button(s);
+  // }
+  if (!s->scene.comma_stock_ui) {
     ui_draw_vision_car(s);
   }
 }

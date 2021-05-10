@@ -103,6 +103,11 @@ TogglesPanel::TogglesPanel(QWidget *parent) : QWidget(parent) {
                                   "크루즈 MainSW를 이용하여 오파를 활성화 합니다.",
                                   "../assets/offroad/icon_shell.png",
                                   this));
+  toggles.append(new ParamControl("CommaStockUI",
+                                  "Comma Stock UI 사용",
+                                  "주행화면을 콤마의 순정 UI를 사용합니다.",
+                                  "../assets/offroad/icon_shell.png",
+                                  this));
 
   bool record_lock = Params().getBool("RecordFrontLock");
   record_toggle->setEnabled(!record_lock);

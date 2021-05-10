@@ -179,6 +179,7 @@ keys = {
   b"MadModeEnabled": [TxType.PERSISTENT],
   b"ModelLongEnabled": [TxType.PERSISTENT],
   b"OpkrFanSpeedGain": [TxType.PERSISTENT],
+  b"CommaStockUI": [TxType.PERSISTENT],
 }
 
 def ensure_bytes(v):

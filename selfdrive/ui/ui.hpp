@@ -65,6 +65,7 @@ const Rect rec_btn = {1745, 905, 140, 140};
 const Rect laneless_btn = {1425, 905, 140, 140};
 const Rect monitoring_btn = {50, 830, 140, 140};
 const Rect ml_btn = {1265, 905, 140, 140};
+const Rect stockui_btn = {15, 15, 184, 202};
 
 const int UI_FREQ = 20;   // Hz
 
@@ -171,6 +172,7 @@ typedef struct UIScene {
   int setbtn_count;
   int homebtn_count;
   bool forceGearD;
+  bool comma_stock_ui;
 
   NetStatus athenaStatus;
 

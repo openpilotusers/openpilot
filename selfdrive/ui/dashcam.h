@@ -271,7 +271,9 @@ void screen_toggle_lock() {
 }
 
 void dashcam(UIState *s) {
-  screen_draw_button(s);
+  if (!s->scene.comma_stock_ui) {
+    screen_draw_button(s);
+  }
   if (s->scene.touched && screen_button_clicked(s) && !s->sidebar_view) {
     click_elapsed_time = get_time() - click_time;
 
