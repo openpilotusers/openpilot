@@ -122,7 +122,7 @@ class CarInterfaceBase():
 
     if cs_out.steerError:
       events.add(EventName.steerUnavailable)
-    elif cs_out.steerWarning and (cs_out.vEgo < 0.1 or cs_out.standstill):
+    elif cs_out.steerWarning and (cs_out.vEgo < 0.1 or cs_out.standstill) and not Params().get_bool("SteerWindDown"):
       events.add(EventName.isgActive)
     elif cs_out.steerWarning and not Params().get_bool("SteerWindDown"):
       events.add(EventName.steerTempUnavailable)
