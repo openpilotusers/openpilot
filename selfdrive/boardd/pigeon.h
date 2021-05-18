@@ -1,9 +1,11 @@
 #pragma once
-#include <string>
+
 #include <termios.h>
 
+#include <atomic>
+#include <string>
 
-#include "panda.h"
+#include "selfdrive/boardd/panda.h"
 
 class Pigeon {
  public:
@@ -12,8 +14,10 @@ class Pigeon {
   virtual ~Pigeon(){};
 
   void init();
+  bool wait_for_ack();
+  bool send_with_ack(std::string cmd);
   virtual void set_baud(int baud) = 0;
-  virtual void send(std::string s) = 0;
+  virtual void send(const std::string &s) = 0;
   virtual std::string receive() = 0;
   virtual void set_power(bool power) = 0;
 };
@@ -24,7 +28,7 @@ public:
   ~PandaPigeon();
   void connect(Panda * p);
   void set_baud(int baud);
-  void send(std::string s);
+  void send(const std::string &s);
   std::string receive();
   void set_power(bool power);
 };
@@ -37,7 +41,7 @@ public:
   ~TTYPigeon();
   void connect(const char* tty);
   void set_baud(int baud);
-  void send(std::string s);
+  void send(const std::string &s);
   std::string receive();
   void set_power(bool power);
 };

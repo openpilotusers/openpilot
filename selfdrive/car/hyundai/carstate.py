@@ -37,7 +37,7 @@ class CarState(CarStateBase):
 
     self.apply_steer = 0.
     
-    self.steer_anglecorrection = float(int(Params().get("OpkrSteerAngleCorrection")) * 0.1)
+    self.steer_anglecorrection = float(int(Params().get("OpkrSteerAngleCorrection", encoding="utf8")) * 0.1)
     self.gear_correction = Params().get_bool("JustDoGearD")
     self.steer_wind_down = Params().get_bool("SteerWindDown")
 

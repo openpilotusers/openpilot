@@ -1,3 +1,5 @@
+#include "selfdrive/ui/qt/api.h"
+
 #include <QDateTime>
 #include <QDebug>
 #include <QFile>
@@ -5,20 +7,18 @@
 #include <QJsonObject>
 #include <QNetworkReply>
 #include <QNetworkRequest>
-#include <QString>
-#include <QWidget>
-#include <QTimer>
 #include <QRandomGenerator>
+#include <QString>
+#include <QTimer>
+#include <QWidget>
 
-#include "api.hpp"
-#include "common/params.h"
-#include "common/util.h"
+#include "selfdrive/common/params.h"
+#include "selfdrive/common/util.h"
+#include "selfdrive/hardware/hw.h"
 
-#if defined(QCOM) || defined(QCOM2)
-const std::string private_key_path = "/persist/comma/id_rsa";
-#else
-const std::string private_key_path = util::getenv_default("HOME", "/.comma/persist/comma/id_rsa", "/persist/comma/id_rsa");
-#endif
+const std::string private_key_path =
+    Hardware::PC() ? util::getenv_default("HOME", "/.comma/persist/comma/id_rsa", "/persist/comma/id_rsa")
+                   : "/persist/comma/id_rsa";
 
 QByteArray CommaApi::rsa_sign(const QByteArray &data) {
   auto file = QFile(private_key_path.c_str());
@@ -103,13 +103,6 @@ void HttpRequest::sendRequest(const QString &requestURL){
   QNetworkRequest request;
   request.setUrl(QUrl(requestURL));
   request.setRawHeader(QByteArray("Authorization"), ("JWT " + token).toUtf8());
-
-#ifdef QCOM
-  QSslConfiguration ssl = QSslConfiguration::defaultConfiguration();
-  ssl.setCaCertificates(QSslCertificate::fromPath("/usr/etc/tls/cert.pem",
-                        QSsl::Pem, QRegExp::Wildcard));
-  request.setSslConfiguration(ssl);
-#endif
 
   reply = networkAccessManager->get(request);
 

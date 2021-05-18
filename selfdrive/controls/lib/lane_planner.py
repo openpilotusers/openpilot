@@ -7,8 +7,8 @@ from common.params import Params
 TRAJECTORY_SIZE = 33
 # camera offset is meters from center car to camera
 if EON:
-  CAMERA_OFFSET = float(int(Params().get("CameraOffsetAdj")) * 0.001)  # m from center car to camera
-  CAMERA_OFFSET_A = float((int(Params().get("CameraOffsetAdj")) * 0.001) - 0.1)
+  CAMERA_OFFSET = float(int(Params().get("CameraOffsetAdj", encoding="utf8")) * 0.001)  # m from center car to camera
+  CAMERA_OFFSET_A = float((int(Params().get("CameraOffsetAdj", encoding="utf8")) * 0.001) - 0.1)
   PATH_OFFSET = 0.0
 elif TICI:
   CAMERA_OFFSET = -0.04
@@ -54,9 +54,9 @@ class LanePlanner:
     else:
       lean_offset = 0
 
-    if (int(Params().get("LeftCurvOffsetAdj")) != 0 or int(Params().get("RightCurvOffsetAdj")) != 0) and v_ego > 8:
-      leftCurvOffsetAdj = int(Params().get("LeftCurvOffsetAdj"))
-      rightCurvOffsetAdj = int(Params().get("RightCurvOffsetAdj"))
+    if (int(Params().get("LeftCurvOffsetAdj", encoding="utf8")) != 0 or int(Params().get("RightCurvOffsetAdj", encoding="utf8")) != 0) and v_ego > 8:
+      leftCurvOffsetAdj = int(Params().get("LeftCurvOffsetAdj", encoding="utf8")) if Params().get("LeftCurvOffsetAdj", encoding="utf8") is not None else 0
+      rightCurvOffsetAdj = int(Params().get("RightCurvOffsetAdj", encoding="utf8")) if Params().get("RightCurvOffsetAdj", encoding="utf8") is not None else 0
       if curvature > 0.0008 and leftCurvOffsetAdj < 0 and lane_differ >= 0: # left curve
         if lane_differ > 0.6:
           lane_differ = 0.6          

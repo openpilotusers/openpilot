@@ -4,7 +4,6 @@ import os
 import time
 from pathlib import Path
 from typing import Dict, Optional, Tuple
-import numpy as np
 
 import psutil
 from smbus2 import SMBus
@@ -13,7 +12,7 @@ import cereal.messaging as messaging
 from cereal import log
 from common.filter_simple import FirstOrderFilter
 from common.numpy_fast import clip, interp
-from common.params import Params
+from common.params import Params, ParamKeyType
 from common.realtime import DT_TRML, sec_since_boot
 from common.dict_helpers import strip_deprecated_keys
 from selfdrive.controls.lib.alertmanager import set_offroad_alert
@@ -24,7 +23,6 @@ from selfdrive.swaglog import cloudlog
 from selfdrive.thermald.power_monitoring import PowerMonitoring
 from selfdrive.version import get_git_branch, terms_version, training_version
 
-import re
 import subprocess
 
 FW_SIGNATURE = get_expected_signature()
@@ -90,7 +88,7 @@ def set_eon_fan(val):
     bus.close()
     last_eon_fan_val = val
 
-fanSpeedGain = int(Params().get('OpkrFanSpeedGain'))
+fanSpeedGain = int(Params().get("OpkrFanSpeedGain", encoding="utf8"))
 # temp thresholds to control fan speed - high hysteresis
 _TEMP_THRS_H = [50., 65., 80., 10000]
 # temp thresholds to control fan speed - low hysteresis
@@ -130,9 +128,9 @@ def handle_fan_uno(max_cpu_temp, bat_temp, fan_speed, ignition):
   return new_speed
 
 def check_car_battery_voltage(should_start, pandaState, charging_disabled, msg):
-  battery_charging_control = Params().get_bool('OpkrBatteryChargingControl')
-  battery_charging_min = int(Params().get('OpkrBatteryChargingMin'))
-  battery_charging_max = int(Params().get('OpkrBatteryChargingMax'))
+  battery_charging_control = Params().get_bool("OpkrBatteryChargingControl")
+  battery_charging_min = int(Params().get("OpkrBatteryChargingMin", encoding="utf8")) if Params().get("OpkrBatteryChargingMin", encoding="utf8") is not None else 70
+  battery_charging_max = int(Params().get("OpkrBatteryChargingMax", encoding="utf8")) if Params().get("OpkrBatteryChargingMax", encoding="utf8") is not None else 80
 
   # charging disallowed if:
   #   - there are pandaState packets from panda, and;
@@ -188,6 +186,7 @@ def thermald_thread():
 
   network_type = NetworkType.none
   network_strength = NetworkStrength.unknown
+  wifiIpAddress = 'N/A'
 
   current_filter = FirstOrderFilter(0., CURRENT_TAU, DT_TRML)
   cpu_temp_filter = FirstOrderFilter(0., CPU_TEMP_TAU, DT_TRML)
@@ -218,9 +217,6 @@ def thermald_thread():
           pass
     cloudlog.event("CPR", data=cpr_data)
 
-  ts_last_ip = 0
-  ip_addr = '255.255.255.255'
-
   # sound trigger
   sound_trigger = 1
   opkrAutoShutdown = 0
@@ -236,25 +232,25 @@ def thermald_thread():
   hotspot_on_boot = params.get_bool("OpkrHotspotOnBoot")
   hotspot_run = False
 
-  if int(params.get('OpkrAutoShutdown')) == 0:
+  if int(params.get("OpkrAutoShutdown", encoding="utf8")) == 0:
     opkrAutoShutdown = 0
-  elif int(params.get('OpkrAutoShutdown')) == 1:
+  elif int(params.get("OpkrAutoShutdown", encoding="utf8")) == 1:
     opkrAutoShutdown = 5
-  elif int(params.get('OpkrAutoShutdown')) == 2:
+  elif int(params.get("OpkrAutoShutdown", encoding="utf8")) == 2:
     opkrAutoShutdown = 30
-  elif int(params.get('OpkrAutoShutdown')) == 3:
+  elif int(params.get("OpkrAutoShutdown", encoding="utf8")) == 3:
     opkrAutoShutdown = 60
-  elif int(params.get('OpkrAutoShutdown')) == 4:
+  elif int(params.get("OpkrAutoShutdown", encoding="utf8")) == 4:
     opkrAutoShutdown = 180
-  elif int(params.get('OpkrAutoShutdown')) == 5:
+  elif int(params.get("OpkrAutoShutdown", encoding="utf8")) == 5:
     opkrAutoShutdown = 300
-  elif int(params.get('OpkrAutoShutdown')) == 6:
+  elif int(params.get("OpkrAutoShutdown", encoding="utf8")) == 6:
     opkrAutoShutdown = 600
-  elif int(params.get('OpkrAutoShutdown')) == 7:
+  elif int(params.get("OpkrAutoShutdown", encoding="utf8")) == 7:
     opkrAutoShutdown = 1800
-  elif int(params.get('OpkrAutoShutdown')) == 8:
+  elif int(params.get("OpkrAutoShutdown", encoding="utf8")) == 8:
     opkrAutoShutdown = 3600
-  elif int(params.get('OpkrAutoShutdown')) == 9:
+  elif int(params.get("OpkrAutoShutdown", encoding="utf8")) == 9:
     opkrAutoShutdown = 10800
   else:
     opkrAutoShutdown = 18000
@@ -299,7 +295,7 @@ def thermald_thread():
       if pandaState_prev is not None:
         if pandaState.pandaState.pandaType == log.PandaState.PandaType.unknown and \
           pandaState_prev.pandaState.pandaType != log.PandaState.PandaType.unknown:
-          params.panda_disconnect()
+          params.clear_all(ParamKeyType.CLEAR_ON_PANDA_DISCONNECT)
       pandaState_prev = pandaState
     elif params.get_bool("IsOpenpilotViewEnabled") and not params.get_bool("IsDriverViewEnabled") and is_openpilot_view_enabled == 0:
       is_openpilot_view_enabled = 1
@@ -315,6 +311,7 @@ def thermald_thread():
       try:
         network_type = HARDWARE.get_network_type()
         network_strength = HARDWARE.get_network_strength(network_type)
+        wifiIpAddress = HARDWARE.get_ip_address()
       except Exception:
         cloudlog.exception("Error getting network status")
 
@@ -323,6 +320,7 @@ def thermald_thread():
     msg.deviceState.cpuUsagePercent = int(round(psutil.cpu_percent()))
     msg.deviceState.networkType = network_type
     msg.deviceState.networkStrength = network_strength
+    msg.deviceState.wifiIpAddress = wifiIpAddress
     msg.deviceState.batteryPercent = HARDWARE.get_battery_capacity()
     msg.deviceState.batteryStatus = HARDWARE.get_battery_status()
     msg.deviceState.batteryCurrent = HARDWARE.get_battery_current()
@@ -334,17 +332,6 @@ def thermald_thread():
       msg.deviceState.batteryPercent = 100
       msg.deviceState.batteryStatus = "Charging"
       msg.deviceState.batteryTempC = 0
-
-    # update ip every 10 seconds
-    ts = sec_since_boot()
-    if ts - ts_last_ip >= 10.:
-      try:
-        result = subprocess.check_output(["ifconfig", "wlan0"], encoding='utf8')  # pylint: disable=unexpected-keyword-arg
-        ip_addr = re.findall(r"inet addr:((\d+\.){3}\d+)", result)[0][0]
-      except:
-        ip_addr = 'N/A'
-      ts_last_ip = ts
-    msg.deviceState.ipAddr = ip_addr
 
     current_filter.update(msg.deviceState.batteryCurrent / 1e6)
 
@@ -447,8 +434,8 @@ def thermald_thread():
       params.put_bool("IsOffroad", not should_start)
       HARDWARE.set_power_save(not should_start)
       if TICI and not params.get_bool("EnableLteOnroad"):
-        fxn = "stop" if should_start else "start"
-        os.system(f"sudo systemctl {fxn} --no-block lte")
+        fxn = "off" if should_start else "on"
+        os.system(f"nmcli radio wwan {fxn}")
 
     if should_start:
       off_ts = None

@@ -64,10 +64,10 @@ class LatControlINDI():
   def live_tune(self, CP):
     self.mpc_frame += 1
     if self.mpc_frame % 300 == 0:
-      self.outerLoopGain = float(int(self.params.get("OuterLoopGain")) * 0.1)
-      self.innerLoopGain = float(int(self.params.get("InnerLoopGain")) * 0.1)
-      self.timeConstant = float(int(self.params.get("TimeConstant")) * 0.1)
-      self.actuatorEffectiveness = float(int(self.params.get("ActuatorEffectiveness")) * 0.1)
+      self.outerLoopGain = float(int(self.params.get("OuterLoopGain", encoding="utf8")) * 0.1)
+      self.innerLoopGain = float(int(self.params.get("InnerLoopGain", encoding="utf8")) * 0.1)
+      self.timeConstant = float(int(self.params.get("TimeConstant", encoding="utf8")) * 0.1)
+      self.actuatorEffectiveness = float(int(self.params.get("ActuatorEffectiveness", encoding="utf8")) * 0.1)
       self.RC = interp(self.speed, [0., 9.], [2.0, self.timeConstant]) 
       self.G = interp(self.speed, [0., 9.], [3.0, self.actuatorEffectiveness])
       self.outer_loop_gain = interp(self.speed, [0., 9.], [1.5, self.outerLoopGain])

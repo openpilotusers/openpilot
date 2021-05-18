@@ -24,10 +24,10 @@ class LatControlPID():
   def live_tune(self, CP):
     self.mpc_frame += 1
     if self.mpc_frame % 300 == 0:
-      self.steerKpV = float(int(self.params.get("PidKp")) * 0.01)
-      self.steerKiV = float(int(self.params.get("PidKi")) * 0.001)
-      self.steerKdV = float(int(self.params.get("PidKd")) * 0.01)
-      self.steerKf = float(int(self.params.get("PidKf")) * 0.00001)
+      self.steerKpV = float(int(self.params.get("PidKp", encoding="utf8")) * 0.01)
+      self.steerKiV = float(int(self.params.get("PidKi", encoding="utf8")) * 0.001)
+      self.steerKdV = float(int(self.params.get("PidKd", encoding="utf8")) * 0.01)
+      self.steerKf = float(int(self.params.get("PidKf", encoding="utf8")) * 0.00001)
       self.pid = LatPIDController((CP.lateralTuning.pid.kpBP, [0.1, self.steerKpV]),
                           (CP.lateralTuning.pid.kiBP, [0.01, self.steerKiV]),
                           (CP.lateralTuning.pid.kdBP, [self.steerKdV]),
@@ -61,7 +61,7 @@ class LatControlPID():
         steer_feedforward *= _c1 * CS.vEgo ** 2 + _c2 * CS.vEgo + _c3
       else:
         steer_feedforward *= CS.vEgo**2  # proportional to realigning tire momentum (~ lateral accel)
-      deadzone = float(int(self.params.get("IgnoreZone")) * 0.1)
+      deadzone = float(int(self.params.get("IgnoreZone", encoding="utf8")) * 0.1) if self.params.get("IgnoreZone", encoding="utf8") is not None else 0.0
 
       check_saturation = (CS.vEgo > 10) and not CS.steeringRateLimited and not CS.steeringPressed
       output_steer = self.pid.update(angle_steers_des, CS.steeringAngleDeg, check_saturation=check_saturation, override=CS.steeringPressed,

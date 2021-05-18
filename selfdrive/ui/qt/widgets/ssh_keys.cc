@@ -1,12 +1,16 @@
-#include <QNetworkReply>
+#include "ssh_keys.h"
+
 #include <QHBoxLayout>
-#include "widgets/input.hpp"
-#include "widgets/ssh_keys.hpp"
-#include "common/params.h"
+#include <QNetworkReply>
 #include <QProcess>
 #include <QAction>
 #include <QMenu>
-#include "home.hpp"
+#include <QSoundEffect>
+
+#include "selfdrive/common/params.h"
+#include "selfdrive/ui/qt/api.h"
+#include "selfdrive/ui/qt/widgets/input.h"
+#include "selfdrive/ui/ui.h"
 
 SshControl::SshControl() : AbstractControl("SSH 키 설정", "경고: 이렇게 하면 GitHub 설정의 모든 공개 키에 대한 SSH 액세스 권한이 부여됩니다. 사용자 이외의 GitHub 사용자 이름을 입력하지 마십시오. 콤마 직원은 절대 GitHub 사용자 이름을 추가하라는 요청을 하지 않습니다.", "") {
 
@@ -30,33 +34,26 @@ SshControl::SshControl() : AbstractControl("SSH 키 설정", "경고: 이렇게 
 
   QObject::connect(&btn, &QPushButton::released, [=]() {
     if (btn.text() == "설정") {
-      username = InputDialog::getText("GitHub 아이디를 입력하세요");
+      QString username = InputDialog::getText("GitHub 아이디를 입력하세요");
       if (username.length() > 0) {
         btn.setText("로딩중");
         btn.setEnabled(false);
         getUserKeys(username);
       }
     } else {
-      Params().remove("GithubUsername");
-      Params().remove("GithubSshKeys");
+      params.remove("GithubUsername");
+      params.remove("GithubSshKeys");
       refresh();
     }
   });
-
-  // setup networking
-  manager = new QNetworkAccessManager(this);
-  networkTimer = new QTimer(this);
-  networkTimer->setSingleShot(true);
-  networkTimer->setInterval(5000);
-  connect(networkTimer, &QTimer::timeout, this, &SshControl::timeout);
 
   refresh();
 }
 
 void SshControl::refresh() {
-  QString param = QString::fromStdString(Params().get("GithubSshKeys"));
+  QString param = QString::fromStdString(params.get("GithubSshKeys"));
   if (param.length()) {
-    username_label.setText(QString::fromStdString(Params().get("GithubUsername")));
+    username_label.setText(QString::fromStdString(params.get("GithubUsername")));
     btn.setText("제거");
   } else {
     username_label.setText("");
@@ -65,61 +62,39 @@ void SshControl::refresh() {
   btn.setEnabled(true);
 }
 
-void SshControl::getUserKeys(QString username){
-  QString url = "https://github.com/" + username + ".keys";
-
-  QNetworkRequest request;
-  request.setUrl(QUrl(url));
-#ifdef QCOM
-  QSslConfiguration ssl = QSslConfiguration::defaultConfiguration();
-  ssl.setCaCertificates(QSslCertificate::fromPath("/usr/etc/tls/cert.pem",
-                        QSsl::Pem, QRegExp::Wildcard));
-  request.setSslConfiguration(ssl);
-#endif
-
-  reply = manager->get(request);
-  connect(reply, &QNetworkReply::finished, this, &SshControl::parseResponse);
-  networkTimer->start();
-}
-
-void SshControl::timeout(){
-  reply->abort();
-}
-
-void SshControl::parseResponse(){
-  QString err = "";
-  if (reply->error() != QNetworkReply::OperationCanceledError) {
-    networkTimer->stop();
-    QString response = reply->readAll();
-    if (reply->error() == QNetworkReply::NoError && response.length()) {
-      Params().put("GithubUsername", username.toStdString());
-      Params().put("GithubSshKeys", response.toStdString());
-    } else if(reply->error() == QNetworkReply::NoError){
-      err = username + " 사용자에 대한 Github 키가 존재하지 않습니다.";
+void SshControl::getUserKeys(const QString &username) {
+  HttpRequest *request = new HttpRequest(this, "https://github.com/" + username + ".keys", "", false);
+  QObject::connect(request, &HttpRequest::receivedResponse, [=](const QString &resp) {
+    if (!resp.isEmpty()) {
+      Params params;
+      params.put("GithubUsername", username.toStdString());
+      params.put("GithubSshKeys", resp.toStdString());
     } else {
-      err = username + " 사용자가 Github에 존재하지 않습니다.";
+      ConfirmationDialog::alert(username + " 사용자에 대한 키가 GitHub에 존재하지 않습니다");
     }
-  } else {
-    err = "요청된 시간이 초과되었습니다.";
-  }
-
-  if (err.length()) {
-    ConfirmationDialog::alert(err);
-  }
-
-  refresh();
-  reply->deleteLater();
-  reply = nullptr;
+    refresh();
+    request->deleteLater();
+  });
+  QObject::connect(request, &HttpRequest::failedResponse, [=] {
+    ConfirmationDialog::alert(username + " 의 GitHub아이디가 존재하지 않습니다");
+    refresh();
+    request->deleteLater();
+  });
+  QObject::connect(request, &HttpRequest::timeoutResponse, [=] {
+    ConfirmationDialog::alert("요청된 시간이 초과되었습니다");
+    refresh();
+    request->deleteLater();
+  });
 }
 
 GitHash::GitHash() : AbstractControl("커밋(로컬/리모트)", "", "") {
 
-  QString lhash = QString::fromStdString(Params().get("GitCommit").substr(0, 10));
-  QString rhash = QString::fromStdString(Params().get("GitCommitRemote").substr(0, 10));
+  QString lhash = QString::fromStdString(params.get("GitCommit").substr(0, 10));
+  QString rhash = QString::fromStdString(params.get("GitCommitRemote").substr(0, 10));
   hlayout->addStretch(1);
   
-  local_hash.setText(QString::fromStdString(Params().get("GitCommit").substr(0, 10)));
-  remote_hash.setText(QString::fromStdString(Params().get("GitCommitRemote").substr(0, 10)));
+  local_hash.setText(QString::fromStdString(params.get("GitCommit").substr(0, 10)));
+  remote_hash.setText(QString::fromStdString(params.get("GitCommitRemote").substr(0, 10)));
   //local_hash.setAlignment(Qt::AlignVCenter);
   remote_hash.setAlignment(Qt::AlignVCenter);
   local_hash.setStyleSheet("color: #aaaaaa");
@@ -149,11 +124,11 @@ OpenpilotView::OpenpilotView() : AbstractControl("오픈파일럿 주행화면 �
   hlayout->addWidget(&btn);
 
   QObject::connect(&btn, &QPushButton::released, [=]() {
-    bool stat = Params().getBool("IsOpenpilotViewEnabled");
+    bool stat = params.getBool("IsOpenpilotViewEnabled");
     if (stat) {
-      Params().putBool("IsOpenpilotViewEnabled", false);
+      params.putBool("IsOpenpilotViewEnabled", false);
     } else {
-      Params().putBool("IsOpenpilotViewEnabled", true);
+      params.putBool("IsOpenpilotViewEnabled", true);
     }
     refresh();
   });
@@ -161,7 +136,7 @@ OpenpilotView::OpenpilotView() : AbstractControl("오픈파일럿 주행화면 �
 }
 
 void OpenpilotView::refresh() {
-  bool param = Params().getBool("IsOpenpilotViewEnabled");
+  bool param = params.getBool("IsOpenpilotViewEnabled");
   if (param) {
     btn.setText("미리보기해제");
   } else {
@@ -232,15 +207,15 @@ CarRecognition::CarRecognition() : AbstractControl("차량강제인식", "핑거
 
   QObject::connect(&btn, &QPushButton::released, [=]() {
     if (btn.text() == "설정" && carname.length()) {
-      Params().put("CarModel", carname.toStdString());
-      Params().put("CarModelAbb", carname.toStdString());
+      params.put("CarModel", carname.toStdString());
+      params.put("CarModelAbb", carname.toStdString());
       QProcess::execute("/data/openpilot/car_force_set.sh");
       refresh(carname);
     } else {
       carname = "";
-      //Params().put("CarModel", "");
-      Params().remove("CarModel");
-      Params().remove("CarModelAbb");
+      //params.put("CarModel", "");
+      params.remove("CarModel");
+      params.remove("CarModelAbb");
       refresh(carname);
     }
   });
@@ -248,12 +223,12 @@ CarRecognition::CarRecognition() : AbstractControl("차량강제인식", "핑거
 }
 
 void CarRecognition::refresh(QString carname) {
-  QString param = QString::fromStdString(Params().get("CarModelAbb"));
+  QString param = QString::fromStdString(params.get("CarModelAbb"));
   if (carname.length()) {
     carname_label.setText(carname);
     btn.setText("제거");
   } else if (param.length()) {
-    carname_label.setText(QString::fromStdString(Params().get("CarModelAbb")));
+    carname_label.setText(QString::fromStdString(params.get("CarModelAbb")));
     btn.setText("제거");
   } else {
     carname_label.setText("");
@@ -287,11 +262,11 @@ CarForceSet::CarForceSet() : AbstractControl("차량강제인식", "핑거프린
       if (carname.length() > 0) {
         btnc.setText("완료");
         btnc.setEnabled(false);
-        Params().put("CarModel", carname.toStdString());
+        params.put("CarModel", carname.toStdString());
         QProcess::execute("/data/openpilot/car_force_set.sh");
       }
     } else {
-      Params().remove("CarModel");
+      params.remove("CarModel");
       refreshc();
     }
   });
@@ -300,9 +275,9 @@ CarForceSet::CarForceSet() : AbstractControl("차량강제인식", "핑거프린
 }
 
 void CarForceSet::refreshc() {
-  QString paramc = QString::fromStdString(Params().get("CarModel"));
+  QString paramc = QString::fromStdString(params.get("CarModel"));
   if (paramc.length()) {
-    //carname_label.setText(QString::fromStdString(Params().get("CarModel")));
+    //carname_label.setText(QString::fromStdString(params.get("CarModel")));
     btnc.setText("제거");
   } else {
     //carname_label.setText("");
@@ -341,33 +316,33 @@ AutoShutdown::AutoShutdown() : AbstractControl("EON 자동 종료", "운행종�
   hlayout->addWidget(&btnplus);
 
   QObject::connect(&btnminus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("OpkrAutoShutdown"));
+    auto str = QString::fromStdString(params.get("OpkrAutoShutdown"));
     int value = str.toInt();
     value = value - 1;
     if (value <= 0 ) {
       value = 0;
     }
     QString values = QString::number(value);
-    Params().put("OpkrAutoShutdown", values.toStdString());
+    params.put("OpkrAutoShutdown", values.toStdString());
     refresh();
   });
   
   QObject::connect(&btnplus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("OpkrAutoShutdown"));
+    auto str = QString::fromStdString(params.get("OpkrAutoShutdown"));
     int value = str.toInt();
     value = value + 1;
     if (value >= 10 ) {
       value = 10;
     }
     QString values = QString::number(value);
-    Params().put("OpkrAutoShutdown", values.toStdString());
+    params.put("OpkrAutoShutdown", values.toStdString());
     refresh();
   });
   refresh();
 }
 
 void AutoShutdown::refresh() {
-  QString option = QString::fromStdString(Params().get("OpkrAutoShutdown"));
+  QString option = QString::fromStdString(params.get("OpkrAutoShutdown"));
   if (option == "0") {
     label.setText(QString::fromStdString("항상켜기"));
   } else if (option == "1") {
@@ -423,22 +398,29 @@ VolumeControl::VolumeControl() : AbstractControl("EON 볼륨 조절(%)", "EON의
   hlayout->addWidget(&btnplus);
 
   QObject::connect(&btnminus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("OpkrUIVolumeBoost"));
+    auto str = QString::fromStdString(params.get("OpkrUIVolumeBoost"));
     int value = str.toInt();
     value = value - 10;
-    if (value <= 0 ) {
-      value = 0;
+    if (value <= -10 ) {
+      value = -10;
     }
     QString values = QString::number(value);
     QUIState::ui_state.scene.scr.nVolumeBoost = value;
-    Params().put("OpkrUIVolumeBoost", values.toStdString());
+    params.put("OpkrUIVolumeBoost", values.toStdString());
     refresh();
-    QUIState::ui_state.sound->volume = value * 0.005;
-    QUIState::ui_state.sound->play(AudibleAlert::CHIME_WARNING1);
+    // QSoundEffect effect1;
+    // effect1.setSource(QUrl::fromLocalFile("/data/openpilot/selfdrive/assets/sounds/warning_1.wav"));
+    // if (value > 0 ) {
+    //   effect1.setVolume(value * 0.01);
+    //   effect1.play();
+    // } else if (value == 0) {
+    //   effect1.setVolume(0.5);
+    //   effect1.play();
+    // }
   });
   
   QObject::connect(&btnplus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("OpkrUIVolumeBoost"));
+    auto str = QString::fromStdString(params.get("OpkrUIVolumeBoost"));
     int value = str.toInt();
     value = value + 10;
     if (value >= 100 ) {
@@ -446,20 +428,29 @@ VolumeControl::VolumeControl() : AbstractControl("EON 볼륨 조절(%)", "EON의
     }
     QString values = QString::number(value);
     QUIState::ui_state.scene.scr.nVolumeBoost = value;
-    Params().put("OpkrUIVolumeBoost", values.toStdString());
+    params.put("OpkrUIVolumeBoost", values.toStdString());
     refresh();
-    QUIState::ui_state.sound->volume = value * 0.005;
-    QUIState::ui_state.sound->play(AudibleAlert::CHIME_WARNING1);
+    // QSoundEffect effect1;
+    // effect1.setSource(QUrl::fromLocalFile("/data/openpilot/selfdrive/assets/sounds/warning_1.wav"));
+    // if (value > 0 ) {
+    //   effect1.setVolume(value * 0.01);
+    //   effect1.play();
+    // } else if (value == 0) {
+    //   effect1.setVolume(0.5);
+    //   effect1.play();
+    // }
   });
   refresh();
 }
 
 void VolumeControl::refresh() {
-  QString option = QString::fromStdString(Params().get("OpkrUIVolumeBoost"));
+  QString option = QString::fromStdString(params.get("OpkrUIVolumeBoost"));
   if (option == "0") {
     label.setText(QString::fromStdString("기본값"));
+  } else if (option == "-10") {
+    label.setText(QString::fromStdString("음소거"));
   } else {
-    label.setText(QString::fromStdString(Params().get("OpkrUIVolumeBoost")));
+    label.setText(QString::fromStdString(params.get("OpkrUIVolumeBoost")));
   }
   btnminus.setText("－");
   btnplus.setText("＋");
@@ -493,7 +484,7 @@ BrightnessControl::BrightnessControl() : AbstractControl("EON 밝기 조절(%)",
   hlayout->addWidget(&btnplus);
 
   QObject::connect(&btnminus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("OpkrUIBrightness"));
+    auto str = QString::fromStdString(params.get("OpkrUIBrightness"));
     int value = str.toInt();
     value = value - 5;
     if (value <= 0 ) {
@@ -501,12 +492,12 @@ BrightnessControl::BrightnessControl() : AbstractControl("EON 밝기 조절(%)",
     }
     QUIState::ui_state.scene.scr.brightness = value;
     QString values = QString::number(value);
-    Params().put("OpkrUIBrightness", values.toStdString());
+    params.put("OpkrUIBrightness", values.toStdString());
     refresh();
   });
   
   QObject::connect(&btnplus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("OpkrUIBrightness"));
+    auto str = QString::fromStdString(params.get("OpkrUIBrightness"));
     int value = str.toInt();
     value = value + 5;
     if (value >= 100 ) {
@@ -514,18 +505,18 @@ BrightnessControl::BrightnessControl() : AbstractControl("EON 밝기 조절(%)",
     }
     QUIState::ui_state.scene.scr.brightness = value;
     QString values = QString::number(value);
-    Params().put("OpkrUIBrightness", values.toStdString());
+    params.put("OpkrUIBrightness", values.toStdString());
     refresh();
   });
   refresh();
 }
 
 void BrightnessControl::refresh() {
-  QString option = QString::fromStdString(Params().get("OpkrUIBrightness"));
+  QString option = QString::fromStdString(params.get("OpkrUIBrightness"));
   if (option == "0") {
     label.setText(QString::fromStdString("자동조절"));
   } else {
-    label.setText(QString::fromStdString(Params().get("OpkrUIBrightness")));
+    label.setText(QString::fromStdString(params.get("OpkrUIBrightness")));
   }
   btnminus.setText("－");
   btnplus.setText("＋");
@@ -560,7 +551,7 @@ AutoScreenOff::AutoScreenOff() : AbstractControl("EON 화면 끄기(분)", "주�
   hlayout->addWidget(&btnplus);
 
   QObject::connect(&btnminus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("OpkrAutoScreenOff"));
+    auto str = QString::fromStdString(params.get("OpkrAutoScreenOff"));
     int value = str.toInt();
     value = value - 1;
     if (value <= 0 ) {
@@ -568,12 +559,12 @@ AutoScreenOff::AutoScreenOff() : AbstractControl("EON 화면 끄기(분)", "주�
     }
     QUIState::ui_state.scene.scr.autoScreenOff = value;
     QString values = QString::number(value);
-    Params().put("OpkrAutoScreenOff", values.toStdString());
+    params.put("OpkrAutoScreenOff", values.toStdString());
     refresh();
   });
   
   QObject::connect(&btnplus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("OpkrAutoScreenOff"));
+    auto str = QString::fromStdString(params.get("OpkrAutoScreenOff"));
     int value = str.toInt();
     value = value + 1;
     if (value >= 10 ) {
@@ -581,7 +572,7 @@ AutoScreenOff::AutoScreenOff() : AbstractControl("EON 화면 끄기(분)", "주�
     }
     QUIState::ui_state.scene.scr.autoScreenOff = value;
     QString values = QString::number(value);
-    Params().put("OpkrAutoScreenOff", values.toStdString());
+    params.put("OpkrAutoScreenOff", values.toStdString());
     refresh();
   });
   refresh();
@@ -589,11 +580,11 @@ AutoScreenOff::AutoScreenOff() : AbstractControl("EON 화면 끄기(분)", "주�
 
 void AutoScreenOff::refresh() 
 {
-  QString option = QString::fromStdString(Params().get("OpkrAutoScreenOff"));
+  QString option = QString::fromStdString(params.get("OpkrAutoScreenOff"));
   if (option == "0") {
     label.setText(QString::fromStdString("항상켜기"));
   } else {
-    label.setText(QString::fromStdString(Params().get("OpkrAutoScreenOff")));
+    label.setText(QString::fromStdString(params.get("OpkrAutoScreenOff")));
   }
   btnminus.setText("－");
   btnplus.setText("＋");
@@ -627,33 +618,33 @@ ChargingMin::ChargingMin() : AbstractControl("배터리 최소 충전 값", "배
   hlayout->addWidget(&btnplus);
 
   QObject::connect(&btnminus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("OpkrBatteryChargingMin"));
+    auto str = QString::fromStdString(params.get("OpkrBatteryChargingMin"));
     int value = str.toInt();
     value = value - 1;
     if (value <= 10 ) {
       value = 10;
     }
     QString values = QString::number(value);
-    Params().put("OpkrBatteryChargingMin", values.toStdString());
+    params.put("OpkrBatteryChargingMin", values.toStdString());
     refresh();
   });
   
   QObject::connect(&btnplus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("OpkrBatteryChargingMin"));
+    auto str = QString::fromStdString(params.get("OpkrBatteryChargingMin"));
     int value = str.toInt();
     value = value + 1;
     if (value >= 90 ) {
       value = 90;
     }
     QString values = QString::number(value);
-    Params().put("OpkrBatteryChargingMin", values.toStdString());
+    params.put("OpkrBatteryChargingMin", values.toStdString());
     refresh();
   });
   refresh();
 }
 
 void ChargingMin::refresh() {
-  label.setText(QString::fromStdString(Params().get("OpkrBatteryChargingMin")));
+  label.setText(QString::fromStdString(params.get("OpkrBatteryChargingMin")));
   btnminus.setText("－");
   btnplus.setText("＋");
 }
@@ -686,33 +677,33 @@ ChargingMax::ChargingMax() : AbstractControl("배터리 최대 충전 값", "배
   hlayout->addWidget(&btnplus);
 
   QObject::connect(&btnminus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("OpkrBatteryChargingMax"));
+    auto str = QString::fromStdString(params.get("OpkrBatteryChargingMax"));
     int value = str.toInt();
     value = value - 1;
     if (value <= 10 ) {
       value = 10;
     }
     QString values = QString::number(value);
-    Params().put("OpkrBatteryChargingMax", values.toStdString());
+    params.put("OpkrBatteryChargingMax", values.toStdString());
     refresh();
   });
   
   QObject::connect(&btnplus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("OpkrBatteryChargingMax"));
+    auto str = QString::fromStdString(params.get("OpkrBatteryChargingMax"));
     int value = str.toInt();
     value = value + 1;
     if (value >= 90 ) {
       value = 90;
     }
     QString values = QString::number(value);
-    Params().put("OpkrBatteryChargingMax", values.toStdString());
+    params.put("OpkrBatteryChargingMax", values.toStdString());
     refresh();
   });
   refresh();
 }
 
 void ChargingMax::refresh() {
-  label.setText(QString::fromStdString(Params().get("OpkrBatteryChargingMax")));
+  label.setText(QString::fromStdString(params.get("OpkrBatteryChargingMax")));
   btnminus.setText("－");
   btnplus.setText("＋");
 }
@@ -745,33 +736,33 @@ FanSpeedGain::FanSpeedGain() : AbstractControl("팬속도 조절 Gain", "팬속�
   hlayout->addWidget(&btnplus);
 
   QObject::connect(&btnminus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("OpkrFanSpeedGain"));
+    auto str = QString::fromStdString(params.get("OpkrFanSpeedGain"));
     int value = str.toInt();
     value = value - 16384;
     if (value <= -16384 ) {
       value = -16384;
     }
     QString values = QString::number(value);
-    Params().put("OpkrFanSpeedGain", values.toStdString());
+    params.put("OpkrFanSpeedGain", values.toStdString());
     refresh();
   });
   
   QObject::connect(&btnplus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("OpkrFanSpeedGain"));
+    auto str = QString::fromStdString(params.get("OpkrFanSpeedGain"));
     int value = str.toInt();
     value = value + 16384;
     if (value >= 49152 ) {
       value = 49152;
     }
     QString values = QString::number(value);
-    Params().put("OpkrFanSpeedGain", values.toStdString());
+    params.put("OpkrFanSpeedGain", values.toStdString());
     refresh();
   });
   refresh();
 }
 
 void FanSpeedGain::refresh() {
-  auto strs = QString::fromStdString(Params().get("OpkrFanSpeedGain"));
+  auto strs = QString::fromStdString(params.get("OpkrFanSpeedGain"));
   int valuei = strs.toInt();
   float valuef = valuei;
   QString valuefs = QString::number(valuef);
@@ -812,33 +803,33 @@ RecordCount::RecordCount() : AbstractControl("녹화파일 최대 개수 설정"
   hlayout->addWidget(&btnplus);
 
   QObject::connect(&btnminus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("RecordingCount"));
+    auto str = QString::fromStdString(params.get("RecordingCount"));
     int value = str.toInt();
     value = value - 5;
     if (value <= 5 ) {
       value = 5;
     }
     QString values = QString::number(value);
-    Params().put("RecordingCount", values.toStdString());
+    params.put("RecordingCount", values.toStdString());
     refresh();
   });
   
   QObject::connect(&btnplus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("RecordingCount"));
+    auto str = QString::fromStdString(params.get("RecordingCount"));
     int value = str.toInt();
     value = value + 5;
     if (value >= 300 ) {
       value = 300;
     }
     QString values = QString::number(value);
-    Params().put("RecordingCount", values.toStdString());
+    params.put("RecordingCount", values.toStdString());
     refresh();
   });
   refresh();
 }
 
 void RecordCount::refresh() {
-  label.setText(QString::fromStdString(Params().get("RecordingCount")));
+  label.setText(QString::fromStdString(params.get("RecordingCount")));
   btnminus.setText("－");
   btnplus.setText("＋");
 }
@@ -871,33 +862,33 @@ RecordQuality::RecordQuality() : AbstractControl("녹화 화질 설정", "녹화
   hlayout->addWidget(&btnplus);
 
   QObject::connect(&btnminus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("RecordingQuality"));
+    auto str = QString::fromStdString(params.get("RecordingQuality"));
     int value = str.toInt();
     value = value - 1;
     if (value <= 0 ) {
       value = 0;
     }
     QString values = QString::number(value);
-    Params().put("RecordingQuality", values.toStdString());
+    params.put("RecordingQuality", values.toStdString());
     refresh();
   });
   
   QObject::connect(&btnplus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("RecordingQuality"));
+    auto str = QString::fromStdString(params.get("RecordingQuality"));
     int value = str.toInt();
     value = value + 1;
     if (value >= 3 ) {
       value = 3;
     }
     QString values = QString::number(value);
-    Params().put("RecordingQuality", values.toStdString());
+    params.put("RecordingQuality", values.toStdString());
     refresh();
   });
   refresh();
 }
 
 void RecordQuality::refresh() {
-  QString option = QString::fromStdString(Params().get("RecordingQuality"));
+  QString option = QString::fromStdString(params.get("RecordingQuality"));
   if (option == "0") {
     label.setText(QString::fromStdString("저화질"));
   } else if (option == "1") {
@@ -939,33 +930,33 @@ MonitoringMode::MonitoringMode() : AbstractControl("모니터링 모드 설정",
   hlayout->addWidget(&btnplus);
 
   QObject::connect(&btnminus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("OpkrMonitoringMode"));
+    auto str = QString::fromStdString(params.get("OpkrMonitoringMode"));
     int value = str.toInt();
     value = value - 1;
     if (value <= 0 ) {
       value = 0;
     }
     QString values = QString::number(value);
-    Params().put("OpkrMonitoringMode", values.toStdString());
+    params.put("OpkrMonitoringMode", values.toStdString());
     refresh();
   });
   
   QObject::connect(&btnplus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("OpkrMonitoringMode"));
+    auto str = QString::fromStdString(params.get("OpkrMonitoringMode"));
     int value = str.toInt();
     value = value + 1;
     if (value >= 1 ) {
       value = 1;
     }
     QString values = QString::number(value);
-    Params().put("OpkrMonitoringMode", values.toStdString());
+    params.put("OpkrMonitoringMode", values.toStdString());
     refresh();
   });
   refresh();
 }
 
 void MonitoringMode::refresh() {
-  QString option = QString::fromStdString(Params().get("OpkrMonitoringMode"));
+  QString option = QString::fromStdString(params.get("OpkrMonitoringMode"));
   if (option == "0") {
     label.setText(QString::fromStdString("기본설정"));
   } else if (option == "1") {
@@ -1003,33 +994,33 @@ MonitorEyesThreshold::MonitorEyesThreshold() : AbstractControl("E2E EYE Threshol
   hlayout->addWidget(&btnplus);
 
   QObject::connect(&btnminus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("OpkrMonitorEyesThreshold"));
+    auto str = QString::fromStdString(params.get("OpkrMonitorEyesThreshold"));
     int value = str.toInt();
     value = value - 1;
     if (value <= 1 ) {
       value = 1;
     }
     QString values = QString::number(value);
-    Params().put("OpkrMonitorEyesThreshold", values.toStdString());
+    params.put("OpkrMonitorEyesThreshold", values.toStdString());
     refresh();
   });
   
   QObject::connect(&btnplus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("OpkrMonitorEyesThreshold"));
+    auto str = QString::fromStdString(params.get("OpkrMonitorEyesThreshold"));
     int value = str.toInt();
     value = value + 1;
     if (value >= 100 ) {
       value = 100;
     }
     QString values = QString::number(value);
-    Params().put("OpkrMonitorEyesThreshold", values.toStdString());
+    params.put("OpkrMonitorEyesThreshold", values.toStdString());
     refresh();
   });
   refresh();
 }
 
 void MonitorEyesThreshold::refresh() {
-  auto strs = QString::fromStdString(Params().get("OpkrMonitorEyesThreshold"));
+  auto strs = QString::fromStdString(params.get("OpkrMonitorEyesThreshold"));
   int valuei = strs.toInt();
   float valuef = valuei * 0.01;
   QString valuefs = QString::number(valuef);
@@ -1066,33 +1057,33 @@ NormalEyesThreshold::NormalEyesThreshold() : AbstractControl("Normal EYE Thresho
   hlayout->addWidget(&btnplus);
 
   QObject::connect(&btnminus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("OpkrMonitorNormalEyesThreshold"));
+    auto str = QString::fromStdString(params.get("OpkrMonitorNormalEyesThreshold"));
     int value = str.toInt();
     value = value - 1;
     if (value <= 1 ) {
       value = 1;
     }
     QString values = QString::number(value);
-    Params().put("OpkrMonitorNormalEyesThreshold", values.toStdString());
+    params.put("OpkrMonitorNormalEyesThreshold", values.toStdString());
     refresh();
   });
   
   QObject::connect(&btnplus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("OpkrMonitorNormalEyesThreshold"));
+    auto str = QString::fromStdString(params.get("OpkrMonitorNormalEyesThreshold"));
     int value = str.toInt();
     value = value + 1;
     if (value >= 100 ) {
       value = 100;
     }
     QString values = QString::number(value);
-    Params().put("OpkrMonitorNormalEyesThreshold", values.toStdString());
+    params.put("OpkrMonitorNormalEyesThreshold", values.toStdString());
     refresh();
   });
   refresh();
 }
 
 void NormalEyesThreshold::refresh() {
-  auto strs = QString::fromStdString(Params().get("OpkrMonitorNormalEyesThreshold"));
+  auto strs = QString::fromStdString(params.get("OpkrMonitorNormalEyesThreshold"));
   int valuei = strs.toInt();
   float valuef = valuei * 0.01;
   QString valuefs = QString::number(valuef);
@@ -1129,33 +1120,33 @@ BlinkThreshold::BlinkThreshold() : AbstractControl("Blink Threshold", "눈 깜�
   hlayout->addWidget(&btnplus);
 
   QObject::connect(&btnminus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("OpkrMonitorBlinkThreshold"));
+    auto str = QString::fromStdString(params.get("OpkrMonitorBlinkThreshold"));
     int value = str.toInt();
     value = value - 1;
     if (value <= 1 ) {
       value = 1;
     }
     QString values = QString::number(value);
-    Params().put("OpkrMonitorBlinkThreshold", values.toStdString());
+    params.put("OpkrMonitorBlinkThreshold", values.toStdString());
     refresh();
   });
   
   QObject::connect(&btnplus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("OpkrMonitorBlinkThreshold"));
+    auto str = QString::fromStdString(params.get("OpkrMonitorBlinkThreshold"));
     int value = str.toInt();
     value = value + 1;
     if (value >= 100 ) {
       value = 100;
     }
     QString values = QString::number(value);
-    Params().put("OpkrMonitorBlinkThreshold", values.toStdString());
+    params.put("OpkrMonitorBlinkThreshold", values.toStdString());
     refresh();
   });
   refresh();
 }
 
 void BlinkThreshold::refresh() {
-  auto strs = QString::fromStdString(Params().get("OpkrMonitorBlinkThreshold"));
+  auto strs = QString::fromStdString(params.get("OpkrMonitorBlinkThreshold"));
   int valuei = strs.toInt();
   float valuef = valuei * 0.01;
   QString valuefs = QString::number(valuef);
@@ -1193,33 +1184,33 @@ VariableCruiseProfile::VariableCruiseProfile() : AbstractControl("크루즈 가�
   hlayout->addWidget(&btnplus);
 
   QObject::connect(&btnminus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("OpkrVariableCruiseProfile"));
+    auto str = QString::fromStdString(params.get("OpkrVariableCruiseProfile"));
     int value = str.toInt();
     value = value - 1;
     if (value <= 0 ) {
       value = 0;
     }
     QString values = QString::number(value);
-    Params().put("OpkrVariableCruiseProfile", values.toStdString());
+    params.put("OpkrVariableCruiseProfile", values.toStdString());
     refresh();
   });
   
   QObject::connect(&btnplus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("OpkrVariableCruiseProfile"));
+    auto str = QString::fromStdString(params.get("OpkrVariableCruiseProfile"));
     int value = str.toInt();
     value = value + 1;
     if (value >= 1 ) {
       value = 1;
     }
     QString values = QString::number(value);
-    Params().put("OpkrVariableCruiseProfile", values.toStdString());
+    params.put("OpkrVariableCruiseProfile", values.toStdString());
     refresh();
   });
   refresh();
 }
 
 void VariableCruiseProfile::refresh() {
-  QString option = QString::fromStdString(Params().get("OpkrVariableCruiseProfile"));
+  QString option = QString::fromStdString(params.get("OpkrVariableCruiseProfile"));
   if (option == "0") {
     label.setText(QString::fromStdString("follow"));
   } else {
@@ -1257,33 +1248,33 @@ CruisemodeSelInit::CruisemodeSelInit() : AbstractControl("크루즈 시작모드
   hlayout->addWidget(&btnplus);
 
   QObject::connect(&btnminus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("CruiseStatemodeSelInit"));
+    auto str = QString::fromStdString(params.get("CruiseStatemodeSelInit"));
     int value = str.toInt();
     value = value - 1;
     if (value <= 0 ) {
       value = 0;
     }
     QString values = QString::number(value);
-    Params().put("CruiseStatemodeSelInit", values.toStdString());
+    params.put("CruiseStatemodeSelInit", values.toStdString());
     refresh();
   });
   
   QObject::connect(&btnplus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("CruiseStatemodeSelInit"));
+    auto str = QString::fromStdString(params.get("CruiseStatemodeSelInit"));
     int value = str.toInt();
     value = value + 1;
     if (value >= 4 ) {
       value = 4;
     }
     QString values = QString::number(value);
-    Params().put("CruiseStatemodeSelInit", values.toStdString());
+    params.put("CruiseStatemodeSelInit", values.toStdString());
     refresh();
   });
   refresh();
 }
 
 void CruisemodeSelInit::refresh() {
-  QString option = QString::fromStdString(Params().get("CruiseStatemodeSelInit"));
+  QString option = QString::fromStdString(params.get("CruiseStatemodeSelInit"));
   if (option == "0") {
     label.setText(QString::fromStdString("오파모드"));
   } else if (option == "1") {
@@ -1327,33 +1318,33 @@ LaneChangeSpeed::LaneChangeSpeed() : AbstractControl("차선변경 속도 설정
   hlayout->addWidget(&btnplus);
 
   QObject::connect(&btnminus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("OpkrLaneChangeSpeed"));
+    auto str = QString::fromStdString(params.get("OpkrLaneChangeSpeed"));
     int value = str.toInt();
     value = value - 5;
     if (value <= 30 ) {
       value = 30;
     }
     QString values = QString::number(value);
-    Params().put("OpkrLaneChangeSpeed", values.toStdString());
+    params.put("OpkrLaneChangeSpeed", values.toStdString());
     refresh();
   });
   
   QObject::connect(&btnplus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("OpkrLaneChangeSpeed"));
+    auto str = QString::fromStdString(params.get("OpkrLaneChangeSpeed"));
     int value = str.toInt();
     value = value + 5;
     if (value >= 160 ) {
       value = 160;
     }
     QString values = QString::number(value);
-    Params().put("OpkrLaneChangeSpeed", values.toStdString());
+    params.put("OpkrLaneChangeSpeed", values.toStdString());
     refresh();
   });
   refresh();
 }
 
 void LaneChangeSpeed::refresh() {
-  label.setText(QString::fromStdString(Params().get("OpkrLaneChangeSpeed")));
+  label.setText(QString::fromStdString(params.get("OpkrLaneChangeSpeed")));
   btnminus.setText("－");
   btnplus.setText("＋");
 }
@@ -1386,33 +1377,33 @@ LaneChangeDelay::LaneChangeDelay() : AbstractControl("차선변경 지연시간 
   hlayout->addWidget(&btnplus);
 
   QObject::connect(&btnminus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("OpkrAutoLaneChangeDelay"));
+    auto str = QString::fromStdString(params.get("OpkrAutoLaneChangeDelay"));
     int value = str.toInt();
     value = value - 1;
     if (value <= 0 ) {
       value = 0;
     }
     QString values = QString::number(value);
-    Params().put("OpkrAutoLaneChangeDelay", values.toStdString());
+    params.put("OpkrAutoLaneChangeDelay", values.toStdString());
     refresh();
   });
   
   QObject::connect(&btnplus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("OpkrAutoLaneChangeDelay"));
+    auto str = QString::fromStdString(params.get("OpkrAutoLaneChangeDelay"));
     int value = str.toInt();
     value = value + 1;
     if (value >= 5 ) {
       value = 5;
     }
     QString values = QString::number(value);
-    Params().put("OpkrAutoLaneChangeDelay", values.toStdString());
+    params.put("OpkrAutoLaneChangeDelay", values.toStdString());
     refresh();
   });
   refresh();
 }
 
 void LaneChangeDelay::refresh() {
-  QString option = QString::fromStdString(Params().get("OpkrAutoLaneChangeDelay"));
+  QString option = QString::fromStdString(params.get("OpkrAutoLaneChangeDelay"));
   if (option == "0") {
     label.setText(QString::fromStdString("수동"));
   } else if (option == "1") {
@@ -1458,33 +1449,33 @@ LeftCurvOffset::LeftCurvOffset() : AbstractControl("오프셋조정(왼쪽 커�
   hlayout->addWidget(&btnplus);
 
   QObject::connect(&btnminus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("LeftCurvOffsetAdj"));
+    auto str = QString::fromStdString(params.get("LeftCurvOffsetAdj"));
     int value = str.toInt();
     value = value - 1;
     if (value <= -30 ) {
       value = -30;
     }
     QString values = QString::number(value);
-    Params().put("LeftCurvOffsetAdj", values.toStdString());
+    params.put("LeftCurvOffsetAdj", values.toStdString());
     refresh();
   });
   
   QObject::connect(&btnplus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("LeftCurvOffsetAdj"));
+    auto str = QString::fromStdString(params.get("LeftCurvOffsetAdj"));
     int value = str.toInt();
     value = value + 1;
     if (value >= 30 ) {
       value = 30;
     }
     QString values = QString::number(value);
-    Params().put("LeftCurvOffsetAdj", values.toStdString());
+    params.put("LeftCurvOffsetAdj", values.toStdString());
     refresh();
   });
   refresh();
 }
 
 void LeftCurvOffset::refresh() {
-  label.setText(QString::fromStdString(Params().get("LeftCurvOffsetAdj")));
+  label.setText(QString::fromStdString(params.get("LeftCurvOffsetAdj")));
   btnminus.setText("－");
   btnplus.setText("＋");
 }
@@ -1517,33 +1508,33 @@ RightCurvOffset::RightCurvOffset() : AbstractControl("오프셋조정(오른쪽 
   hlayout->addWidget(&btnplus);
 
   QObject::connect(&btnminus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("RightCurvOffsetAdj"));
+    auto str = QString::fromStdString(params.get("RightCurvOffsetAdj"));
     int value = str.toInt();
     value = value - 1;
     if (value <= -30 ) {
       value = -30;
     }
     QString values = QString::number(value);
-    Params().put("RightCurvOffsetAdj", values.toStdString());
+    params.put("RightCurvOffsetAdj", values.toStdString());
     refresh();
   });
   
   QObject::connect(&btnplus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("RightCurvOffsetAdj"));
+    auto str = QString::fromStdString(params.get("RightCurvOffsetAdj"));
     int value = str.toInt();
     value = value + 1;
     if (value >= 30 ) {
       value = 30;
     }
     QString values = QString::number(value);
-    Params().put("RightCurvOffsetAdj", values.toStdString());
+    params.put("RightCurvOffsetAdj", values.toStdString());
     refresh();
   });
   refresh();
 }
 
 void RightCurvOffset::refresh() {
-  label.setText(QString::fromStdString(Params().get("RightCurvOffsetAdj")));
+  label.setText(QString::fromStdString(params.get("RightCurvOffsetAdj")));
   btnminus.setText("－");
   btnplus.setText("＋");
 }
@@ -1576,37 +1567,37 @@ MaxAngleLimit::MaxAngleLimit() : AbstractControl("최대 조향각 설정(각도
   hlayout->addWidget(&btnplus);
 
   QObject::connect(&btnminus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("OpkrMaxAngleLimit"));
+    auto str = QString::fromStdString(params.get("OpkrMaxAngleLimit"));
     int value = str.toInt();
     value = value - 10;
     if (value <= 80 ) {
       value = 80;
     }
     QString values = QString::number(value);
-    Params().put("OpkrMaxAngleLimit", values.toStdString());
+    params.put("OpkrMaxAngleLimit", values.toStdString());
     refresh();
   });
   
   QObject::connect(&btnplus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("OpkrMaxAngleLimit"));
+    auto str = QString::fromStdString(params.get("OpkrMaxAngleLimit"));
     int value = str.toInt();
     value = value + 10;
     if (value >= 360 ) {
       value = 360;
     }
     QString values = QString::number(value);
-    Params().put("OpkrMaxAngleLimit", values.toStdString());
+    params.put("OpkrMaxAngleLimit", values.toStdString());
     refresh();
   });
   refresh();
 }
 
 void MaxAngleLimit::refresh() {
-  QString option = QString::fromStdString(Params().get("OpkrMaxAngleLimit"));
+  QString option = QString::fromStdString(params.get("OpkrMaxAngleLimit"));
   if (option == "80") {
     label.setText(QString::fromStdString("제한없음"));
   } else {
-    label.setText(QString::fromStdString(Params().get("OpkrMaxAngleLimit")));
+    label.setText(QString::fromStdString(params.get("OpkrMaxAngleLimit")));
   }
   btnminus.setText("－");
   btnplus.setText("＋");
@@ -1640,33 +1631,33 @@ SteerAngleCorrection::SteerAngleCorrection() : AbstractControl("스티어앵글 
   hlayout->addWidget(&btnplus);
 
   QObject::connect(&btnminus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("OpkrSteerAngleCorrection"));
+    auto str = QString::fromStdString(params.get("OpkrSteerAngleCorrection"));
     int value = str.toInt();
     value = value - 1;
     if (value <= -50 ) {
       value = -50;
     }
     QString values = QString::number(value);
-    Params().put("OpkrSteerAngleCorrection", values.toStdString());
+    params.put("OpkrSteerAngleCorrection", values.toStdString());
     refresh();
   });
   
   QObject::connect(&btnplus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("OpkrSteerAngleCorrection"));
+    auto str = QString::fromStdString(params.get("OpkrSteerAngleCorrection"));
     int value = str.toInt();
     value = value + 1;
     if (value >= 50 ) {
       value = 50;
     }
     QString values = QString::number(value);
-    Params().put("OpkrSteerAngleCorrection", values.toStdString());
+    params.put("OpkrSteerAngleCorrection", values.toStdString());
     refresh();
   });
   refresh();
 }
 
 void SteerAngleCorrection::refresh() {
-  auto strs = QString::fromStdString(Params().get("OpkrSteerAngleCorrection"));
+  auto strs = QString::fromStdString(params.get("OpkrSteerAngleCorrection"));
   int valuei = strs.toInt();
   float valuef = valuei * 0.1;
   QString valuefs = QString::number(valuef);
@@ -1703,7 +1694,7 @@ SpeedLimitOffset::SpeedLimitOffset() : AbstractControl("MAP기반 제한속도 �
   hlayout->addWidget(&btnplus);
 
   QObject::connect(&btnminus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("OpkrSpeedLimitOffset"));
+    auto str = QString::fromStdString(params.get("OpkrSpeedLimitOffset"));
     int value = str.toInt();
     value = value - 1;
     if (value <= 0 ) {
@@ -1711,12 +1702,12 @@ SpeedLimitOffset::SpeedLimitOffset() : AbstractControl("MAP기반 제한속도 �
     }
     QString values = QString::number(value);
     //QUIState::ui_state.speed_lim_off = value;
-    Params().put("OpkrSpeedLimitOffset", values.toStdString());
+    params.put("OpkrSpeedLimitOffset", values.toStdString());
     refresh();
   });
   
   QObject::connect(&btnplus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("OpkrSpeedLimitOffset"));
+    auto str = QString::fromStdString(params.get("OpkrSpeedLimitOffset"));
     int value = str.toInt();
     value = value + 1;
     if (value >= 10 ) {
@@ -1724,14 +1715,14 @@ SpeedLimitOffset::SpeedLimitOffset() : AbstractControl("MAP기반 제한속도 �
     }
     QString values = QString::number(value);
     //QUIState::ui_state.speed_lim_off = value;
-    Params().put("OpkrSpeedLimitOffset", values.toStdString());
+    params.put("OpkrSpeedLimitOffset", values.toStdString());
     refresh();
   });
   refresh();
 }
 
 void SpeedLimitOffset::refresh() {
-  label.setText(QString::fromStdString(Params().get("OpkrSpeedLimitOffset")));
+  label.setText(QString::fromStdString(params.get("OpkrSpeedLimitOffset")));
   btnminus.setText("－");
   btnplus.setText("＋");
 }
@@ -1764,33 +1755,33 @@ RESChoice::RESChoice() : AbstractControl("자동 RES 옵션", "자동RES옵션�
   hlayout->addWidget(&btnplus);
 
   QObject::connect(&btnminus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("AutoResOption"));
+    auto str = QString::fromStdString(params.get("AutoResOption"));
     int value = str.toInt();
     value = value - 1;
     if (value <= 0 ) {
       value = 0;
     }
     QString values = QString::number(value);
-    Params().put("AutoResOption", values.toStdString());
+    params.put("AutoResOption", values.toStdString());
     refresh();
   });
   
   QObject::connect(&btnplus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("AutoResOption"));
+    auto str = QString::fromStdString(params.get("AutoResOption"));
     int value = str.toInt();
     value = value + 1;
     if (value >= 1 ) {
       value = 1;
     }
     QString values = QString::number(value);
-    Params().put("AutoResOption", values.toStdString());
+    params.put("AutoResOption", values.toStdString());
     refresh();
   });
   refresh();
 }
 
 void RESChoice::refresh() {
-  QString option = QString::fromStdString(Params().get("AutoResOption"));
+  QString option = QString::fromStdString(params.get("AutoResOption"));
   if (option == "0") {
     label.setText(QString::fromStdString("크루즈속도조정"));
   } else {
@@ -1829,33 +1820,33 @@ MaxSteer::MaxSteer() : AbstractControl("MAX_STEER", "판다 MAX_STEER 값을 수
   hlayout->addWidget(&btnplus);
 
   QObject::connect(&btnminus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("MaxSteer"));
+    auto str = QString::fromStdString(params.get("MaxSteer"));
     int value = str.toInt();
     value = value - 2;
     if (value <= 384 ) {
       value = 384;
     }
     QString values = QString::number(value);
-    Params().put("MaxSteer", values.toStdString());
+    params.put("MaxSteer", values.toStdString());
     refresh();
   });
   
   QObject::connect(&btnplus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("MaxSteer"));
+    auto str = QString::fromStdString(params.get("MaxSteer"));
     int value = str.toInt();
     value = value + 2;
     if (value >= 1000 ) {
       value = 1000;
     }
     QString values = QString::number(value);
-    Params().put("MaxSteer", values.toStdString());
+    params.put("MaxSteer", values.toStdString());
     refresh();
   });
   refresh();
 }
 
 void MaxSteer::refresh() {
-  label.setText(QString::fromStdString(Params().get("MaxSteer")));
+  label.setText(QString::fromStdString(params.get("MaxSteer")));
   btnminus.setText("－");
   btnplus.setText("＋");
 }
@@ -1888,33 +1879,33 @@ MaxRTDelta::MaxRTDelta() : AbstractControl("RT_DELTA", "판다 RT_DELTA 값을 �
   hlayout->addWidget(&btnplus);
 
   QObject::connect(&btnminus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("MaxRTDelta"));
+    auto str = QString::fromStdString(params.get("MaxRTDelta"));
     int value = str.toInt();
     value = value - 2;
     if (value <= 50 ) {
       value = 50;
     }
     QString values = QString::number(value);
-    Params().put("MaxRTDelta", values.toStdString());
+    params.put("MaxRTDelta", values.toStdString());
     refresh();
   });
   
   QObject::connect(&btnplus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("MaxRTDelta"));
+    auto str = QString::fromStdString(params.get("MaxRTDelta"));
     int value = str.toInt();
     value = value + 2;
     if (value >= 500 ) {
       value = 500;
     }
     QString values = QString::number(value);
-    Params().put("MaxRTDelta", values.toStdString());
+    params.put("MaxRTDelta", values.toStdString());
     refresh();
   });
   refresh();
 }
 
 void MaxRTDelta::refresh() {
-  label.setText(QString::fromStdString(Params().get("MaxRTDelta")));
+  label.setText(QString::fromStdString(params.get("MaxRTDelta")));
   btnminus.setText("－");
   btnplus.setText("＋");
 }
@@ -1947,33 +1938,33 @@ MaxRateUp::MaxRateUp() : AbstractControl("MAX_RATE_UP", "판다 MAX_RATE_UP 값�
   hlayout->addWidget(&btnplus);
 
   QObject::connect(&btnminus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("MaxRateUp"));
+    auto str = QString::fromStdString(params.get("MaxRateUp"));
     int value = str.toInt();
     value = value - 1;
     if (value <= 3 ) {
       value = 3;
     }
     QString values = QString::number(value);
-    Params().put("MaxRateUp", values.toStdString());
+    params.put("MaxRateUp", values.toStdString());
     refresh();
   });
   
   QObject::connect(&btnplus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("MaxRateUp"));
+    auto str = QString::fromStdString(params.get("MaxRateUp"));
     int value = str.toInt();
     value = value + 1;
     if (value >= 7 ) {
       value = 7;
     }
     QString values = QString::number(value);
-    Params().put("MaxRateUp", values.toStdString());
+    params.put("MaxRateUp", values.toStdString());
     refresh();
   });
   refresh();
 }
 
 void MaxRateUp::refresh() {
-  label.setText(QString::fromStdString(Params().get("MaxRateUp")));
+  label.setText(QString::fromStdString(params.get("MaxRateUp")));
   btnminus.setText("－");
   btnplus.setText("＋");
 }
@@ -2006,33 +1997,33 @@ MaxRateDown::MaxRateDown() : AbstractControl("MAX_RATE_DOWN", "판다 MAX_RATE_D
   hlayout->addWidget(&btnplus);
 
   QObject::connect(&btnminus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("MaxRateDown"));
+    auto str = QString::fromStdString(params.get("MaxRateDown"));
     int value = str.toInt();
     value = value - 1;
     if (value <= 7 ) {
       value = 7;
     }
     QString values = QString::number(value);
-    Params().put("MaxRateDown", values.toStdString());
+    params.put("MaxRateDown", values.toStdString());
     refresh();
   });
   
   QObject::connect(&btnplus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("MaxRateDown"));
+    auto str = QString::fromStdString(params.get("MaxRateDown"));
     int value = str.toInt();
     value = value + 1;
     if (value >= 15 ) {
       value = 15;
     }
     QString values = QString::number(value);
-    Params().put("MaxRateDown", values.toStdString());
+    params.put("MaxRateDown", values.toStdString());
     refresh();
   });
   refresh();
 }
 
 void MaxRateDown::refresh() {
-  label.setText(QString::fromStdString(Params().get("MaxRateDown")));
+  label.setText(QString::fromStdString(params.get("MaxRateDown")));
   btnminus.setText("－");
   btnplus.setText("＋");
 }
@@ -2066,33 +2057,33 @@ CameraOffset::CameraOffset() : AbstractControl("CameraOffset", "CameraOffset값�
   hlayout->addWidget(&btnplus);
 
   QObject::connect(&btnminus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("CameraOffsetAdj"));
+    auto str = QString::fromStdString(params.get("CameraOffsetAdj"));
     int value = str.toInt();
     value = value - 5;
     if (value <= -300 ) {
       value = -300;
     }
     QString values = QString::number(value);
-    Params().put("CameraOffsetAdj", values.toStdString());
+    params.put("CameraOffsetAdj", values.toStdString());
     refresh();
   });
   
   QObject::connect(&btnplus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("CameraOffsetAdj"));
+    auto str = QString::fromStdString(params.get("CameraOffsetAdj"));
     int value = str.toInt();
     value = value + 5;
     if (value >= 300 ) {
       value = 300;
     }
     QString values = QString::number(value);
-    Params().put("CameraOffsetAdj", values.toStdString());
+    params.put("CameraOffsetAdj", values.toStdString());
     refresh();
   });
   refresh();
 }
 
 void CameraOffset::refresh() {
-  auto strs = QString::fromStdString(Params().get("CameraOffsetAdj"));
+  auto strs = QString::fromStdString(params.get("CameraOffsetAdj"));
   int valuei = strs.toInt();
   float valuef = valuei * 0.001;
   QString valuefs = QString::number(valuef);
@@ -2129,33 +2120,33 @@ SRBaseControl::SRBaseControl() : AbstractControl("SteerRatio", "SteerRatio 기�
   hlayout->addWidget(&btnplus);
 
   QObject::connect(&btnminus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("SteerRatioAdj"));
+    auto str = QString::fromStdString(params.get("SteerRatioAdj"));
     int value = str.toInt();
     value = value - 1;
     if (value <= 80 ) {
       value = 80;
     }
     QString values = QString::number(value);
-    Params().put("SteerRatioAdj", values.toStdString());
+    params.put("SteerRatioAdj", values.toStdString());
     refresh();
   });
   
   QObject::connect(&btnplus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("SteerRatioAdj"));
+    auto str = QString::fromStdString(params.get("SteerRatioAdj"));
     int value = str.toInt();
     value = value + 1;
     if (value >= 200) {
       value = 200;
     }
     QString values = QString::number(value);
-    Params().put("SteerRatioAdj", values.toStdString());
+    params.put("SteerRatioAdj", values.toStdString());
     refresh();
   });
   refresh();
 }
 
 void SRBaseControl::refresh() {
-  auto strs = QString::fromStdString(Params().get("SteerRatioAdj"));
+  auto strs = QString::fromStdString(params.get("SteerRatioAdj"));
   int valuei = strs.toInt();
   float valuef = valuei * 0.1;
   QString valuefs = QString::number(valuef);
@@ -2192,33 +2183,33 @@ SRMaxControl::SRMaxControl() : AbstractControl("SteerRatioMax", "SteerRatio 최�
   hlayout->addWidget(&btnplus);
 
   QObject::connect(&btnminus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("SteerRatioMaxAdj"));
+    auto str = QString::fromStdString(params.get("SteerRatioMaxAdj"));
     int value = str.toInt();
     value = value - 1;
     if (value <= 100 ) {
       value = 100;
     }
     QString values = QString::number(value);
-    Params().put("SteerRatioMaxAdj", values.toStdString());
+    params.put("SteerRatioMaxAdj", values.toStdString());
     refresh();
   });
   
   QObject::connect(&btnplus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("SteerRatioMaxAdj"));
+    auto str = QString::fromStdString(params.get("SteerRatioMaxAdj"));
     int value = str.toInt();
     value = value + 1;
     if (value >= 250 ) {
       value = 250;
     }
     QString values = QString::number(value);
-    Params().put("SteerRatioMaxAdj", values.toStdString());
+    params.put("SteerRatioMaxAdj", values.toStdString());
     refresh();
   });
   refresh();
 }
 
 void SRMaxControl::refresh() {
-  auto strs = QString::fromStdString(Params().get("SteerRatioMaxAdj"));
+  auto strs = QString::fromStdString(params.get("SteerRatioMaxAdj"));
   int valuei = strs.toInt();
   float valuef = valuei * 0.1;
   QString valuefs = QString::number(valuef);
@@ -2255,33 +2246,33 @@ SteerActuatorDelay::SteerActuatorDelay() : AbstractControl("SteerActuatorDelay",
   hlayout->addWidget(&btnplus);
 
   QObject::connect(&btnminus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("SteerActuatorDelayAdj"));
+    auto str = QString::fromStdString(params.get("SteerActuatorDelayAdj"));
     int value = str.toInt();
     value = value - 1;
     if (value <= 1 ) {
       value = 1;
     }
     QString values = QString::number(value);
-    Params().put("SteerActuatorDelayAdj", values.toStdString());
+    params.put("SteerActuatorDelayAdj", values.toStdString());
     refresh();
   });
   
   QObject::connect(&btnplus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("SteerActuatorDelayAdj"));
+    auto str = QString::fromStdString(params.get("SteerActuatorDelayAdj"));
     int value = str.toInt();
     value = value + 1;
     if (value >= 100 ) {
       value = 100;
     }
     QString values = QString::number(value);
-    Params().put("SteerActuatorDelayAdj", values.toStdString());
+    params.put("SteerActuatorDelayAdj", values.toStdString());
     refresh();
   });
   refresh();
 }
 
 void SteerActuatorDelay::refresh() {
-  auto strs = QString::fromStdString(Params().get("SteerActuatorDelayAdj"));
+  auto strs = QString::fromStdString(params.get("SteerActuatorDelayAdj"));
   int valuei = strs.toInt();
   float valuef = valuei * 0.01;
   QString valuefs = QString::number(valuef);
@@ -2318,33 +2309,33 @@ SteerRateCost::SteerRateCost() : AbstractControl("SteerRateCost", "SteerRateCost
   hlayout->addWidget(&btnplus);
 
   QObject::connect(&btnminus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("SteerRateCostAdj"));
+    auto str = QString::fromStdString(params.get("SteerRateCostAdj"));
     int value = str.toInt();
     value = value - 1;
     if (value <= 1 ) {
       value = 1;
     }
     QString values = QString::number(value);
-    Params().put("SteerRateCostAdj", values.toStdString());
+    params.put("SteerRateCostAdj", values.toStdString());
     refresh();
   });
   
   QObject::connect(&btnplus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("SteerRateCostAdj"));
+    auto str = QString::fromStdString(params.get("SteerRateCostAdj"));
     int value = str.toInt();
     value = value + 1;
     if (value >= 200 ) {
       value = 200;
     }
     QString values = QString::number(value);
-    Params().put("SteerRateCostAdj", values.toStdString());
+    params.put("SteerRateCostAdj", values.toStdString());
     refresh();
   });
   refresh();
 }
 
 void SteerRateCost::refresh() {
-  auto strs = QString::fromStdString(Params().get("SteerRateCostAdj"));
+  auto strs = QString::fromStdString(params.get("SteerRateCostAdj"));
   int valuei = strs.toInt();
   float valuef = valuei * 0.01;
   QString valuefs = QString::number(valuef);
@@ -2381,33 +2372,33 @@ SteerLimitTimer::SteerLimitTimer() : AbstractControl("SteerLimitTimer", "SteerLi
   hlayout->addWidget(&btnplus);
 
   QObject::connect(&btnminus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("SteerLimitTimerAdj"));
+    auto str = QString::fromStdString(params.get("SteerLimitTimerAdj"));
     int value = str.toInt();
     value = value - 1;
     if (value <= 0 ) {
       value = 0;
     }
     QString values = QString::number(value);
-    Params().put("SteerLimitTimerAdj", values.toStdString());
+    params.put("SteerLimitTimerAdj", values.toStdString());
     refresh();
   });
   
   QObject::connect(&btnplus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("SteerLimitTimerAdj"));
+    auto str = QString::fromStdString(params.get("SteerLimitTimerAdj"));
     int value = str.toInt();
     value = value + 1;
     if (value >= 300 ) {
       value = 300;
     }
     QString values = QString::number(value);
-    Params().put("SteerLimitTimerAdj", values.toStdString());
+    params.put("SteerLimitTimerAdj", values.toStdString());
     refresh();
   });
   refresh();
 }
 
 void SteerLimitTimer::refresh() {
-  auto strs = QString::fromStdString(Params().get("SteerLimitTimerAdj"));
+  auto strs = QString::fromStdString(params.get("SteerLimitTimerAdj"));
   int valuei = strs.toInt();
   float valuef = valuei * 0.01;
   QString valuefs = QString::number(valuef);
@@ -2444,33 +2435,33 @@ TireStiffnessFactor::TireStiffnessFactor() : AbstractControl("TireStiffnessFacto
   hlayout->addWidget(&btnplus);
 
   QObject::connect(&btnminus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("TireStiffnessFactorAdj"));
+    auto str = QString::fromStdString(params.get("TireStiffnessFactorAdj"));
     int value = str.toInt();
     value = value - 1;
     if (value <= 1 ) {
       value = 1;
     }
     QString values = QString::number(value);
-    Params().put("TireStiffnessFactorAdj", values.toStdString());
+    params.put("TireStiffnessFactorAdj", values.toStdString());
     refresh();
   });
   
   QObject::connect(&btnplus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("TireStiffnessFactorAdj"));
+    auto str = QString::fromStdString(params.get("TireStiffnessFactorAdj"));
     int value = str.toInt();
     value = value + 1;
     if (value >= 200 ) {
       value = 200;
     }
     QString values = QString::number(value);
-    Params().put("TireStiffnessFactorAdj", values.toStdString());
+    params.put("TireStiffnessFactorAdj", values.toStdString());
     refresh();
   });
   refresh();
 }
 
 void TireStiffnessFactor::refresh() {
-  auto strs = QString::fromStdString(Params().get("TireStiffnessFactorAdj"));
+  auto strs = QString::fromStdString(params.get("TireStiffnessFactorAdj"));
   int valuei = strs.toInt();
   float valuef = valuei * 0.01;
   QString valuefs = QString::number(valuef);
@@ -2507,33 +2498,33 @@ SteerMaxBase::SteerMaxBase() : AbstractControl("SteerMax기본값", "SteerMax기
   hlayout->addWidget(&btnplus);
 
   QObject::connect(&btnminus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("SteerMaxBaseAdj"));
+    auto str = QString::fromStdString(params.get("SteerMaxBaseAdj"));
     int value = str.toInt();
     value = value - 2;
     if (value <= 200 ) {
       value = 200;
     }
     QString values = QString::number(value);
-    Params().put("SteerMaxBaseAdj", values.toStdString());
+    params.put("SteerMaxBaseAdj", values.toStdString());
     refresh();
   });
   
   QObject::connect(&btnplus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("SteerMaxBaseAdj"));
+    auto str = QString::fromStdString(params.get("SteerMaxBaseAdj"));
     int value = str.toInt();
     value = value + 2;
     if (value >= 384 ) {
       value = 384;
     }
     QString values = QString::number(value);
-    Params().put("SteerMaxBaseAdj", values.toStdString());
+    params.put("SteerMaxBaseAdj", values.toStdString());
     refresh();
   });
   refresh();
 }
 
 void SteerMaxBase::refresh() {
-  label.setText(QString::fromStdString(Params().get("SteerMaxBaseAdj")));
+  label.setText(QString::fromStdString(params.get("SteerMaxBaseAdj")));
   btnminus.setText("－");
   btnplus.setText("＋");
 }
@@ -2566,33 +2557,33 @@ SteerMaxMax::SteerMaxMax() : AbstractControl("SteerMax최대값", "SteerMax최�
   hlayout->addWidget(&btnplus);
 
   QObject::connect(&btnminus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("SteerMaxAdj"));
+    auto str = QString::fromStdString(params.get("SteerMaxAdj"));
     int value = str.toInt();
     value = value - 2;
     if (value <= 254 ) {
       value = 254;
     }
     QString values = QString::number(value);
-    Params().put("SteerMaxAdj", values.toStdString());
+    params.put("SteerMaxAdj", values.toStdString());
     refresh();
   });
   
   QObject::connect(&btnplus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("SteerMaxAdj"));
+    auto str = QString::fromStdString(params.get("SteerMaxAdj"));
     int value = str.toInt();
     value = value + 2;
     if (value >= 1000 ) {
       value = 1000;
     }
     QString values = QString::number(value);
-    Params().put("SteerMaxAdj", values.toStdString());
+    params.put("SteerMaxAdj", values.toStdString());
     refresh();
   });
   refresh();
 }
 
 void SteerMaxMax::refresh() {
-  label.setText(QString::fromStdString(Params().get("SteerMaxAdj")));
+  label.setText(QString::fromStdString(params.get("SteerMaxAdj")));
   btnminus.setText("－");
   btnplus.setText("＋");
 }
@@ -2625,33 +2616,33 @@ SteerMaxv::SteerMaxv() : AbstractControl("SteerMaxV", "SteerMaxV값을 조정합
   hlayout->addWidget(&btnplus);
 
   QObject::connect(&btnminus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("SteerMaxvAdj"));
+    auto str = QString::fromStdString(params.get("SteerMaxvAdj"));
     int value = str.toInt();
     value = value - 1;
     if (value <= 10 ) {
       value = 10;
     }
     QString values = QString::number(value);
-    Params().put("SteerMaxvAdj", values.toStdString());
+    params.put("SteerMaxvAdj", values.toStdString());
     refresh();
   });
   
   QObject::connect(&btnplus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("SteerMaxvAdj"));
+    auto str = QString::fromStdString(params.get("SteerMaxvAdj"));
     int value = str.toInt();
     value = value + 1;
     if (value >= 30 ) {
       value = 30;
     }
     QString values = QString::number(value);
-    Params().put("SteerMaxvAdj", values.toStdString());
+    params.put("SteerMaxvAdj", values.toStdString());
     refresh();
   });
   refresh();
 }
 
 void SteerMaxv::refresh() {
-  auto strs = QString::fromStdString(Params().get("SteerMaxvAdj"));
+  auto strs = QString::fromStdString(params.get("SteerMaxvAdj"));
   int valuei = strs.toInt();
   float valuef = valuei * 0.1;
   QString valuefs = QString::number(valuef);
@@ -2688,33 +2679,33 @@ SteerDeltaUpBase::SteerDeltaUpBase() : AbstractControl("SteerDeltaUp기본값", 
   hlayout->addWidget(&btnplus);
 
   QObject::connect(&btnminus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("SteerDeltaUpBaseAdj"));
+    auto str = QString::fromStdString(params.get("SteerDeltaUpBaseAdj"));
     int value = str.toInt();
     value = value - 1;
     if (value <= 2 ) {
       value = 2;
     }
     QString values = QString::number(value);
-    Params().put("SteerDeltaUpBaseAdj", values.toStdString());
+    params.put("SteerDeltaUpBaseAdj", values.toStdString());
     refresh();
   });
   
   QObject::connect(&btnplus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("SteerDeltaUpBaseAdj"));
+    auto str = QString::fromStdString(params.get("SteerDeltaUpBaseAdj"));
     int value = str.toInt();
     value = value + 1;
     if (value >= 7 ) {
       value = 7;
     }
     QString values = QString::number(value);
-    Params().put("SteerDeltaUpBaseAdj", values.toStdString());
+    params.put("SteerDeltaUpBaseAdj", values.toStdString());
     refresh();
   });
   refresh();
 }
 
 void SteerDeltaUpBase::refresh() {
-  label.setText(QString::fromStdString(Params().get("SteerDeltaUpBaseAdj")));
+  label.setText(QString::fromStdString(params.get("SteerDeltaUpBaseAdj")));
   btnminus.setText("－");
   btnplus.setText("＋");
 }
@@ -2747,33 +2738,33 @@ SteerDeltaUpMax::SteerDeltaUpMax() : AbstractControl("SteerDeltaUp최대값", "S
   hlayout->addWidget(&btnplus);
 
   QObject::connect(&btnminus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("SteerDeltaUpAdj"));
+    auto str = QString::fromStdString(params.get("SteerDeltaUpAdj"));
     int value = str.toInt();
     value = value - 1;
     if (value <= 3 ) {
       value = 3;
     }
     QString values = QString::number(value);
-    Params().put("SteerDeltaUpAdj", values.toStdString());
+    params.put("SteerDeltaUpAdj", values.toStdString());
     refresh();
   });
   
   QObject::connect(&btnplus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("SteerDeltaUpAdj"));
+    auto str = QString::fromStdString(params.get("SteerDeltaUpAdj"));
     int value = str.toInt();
     value = value + 1;
     if (value >= 7 ) {
       value = 7;
     }
     QString values = QString::number(value);
-    Params().put("SteerDeltaUpAdj", values.toStdString());
+    params.put("SteerDeltaUpAdj", values.toStdString());
     refresh();
   });
   refresh();
 }
 
 void SteerDeltaUpMax::refresh() {
-  label.setText(QString::fromStdString(Params().get("SteerDeltaUpAdj")));
+  label.setText(QString::fromStdString(params.get("SteerDeltaUpAdj")));
   btnminus.setText("－");
   btnplus.setText("＋");
 }
@@ -2806,33 +2797,33 @@ SteerDeltaDownBase::SteerDeltaDownBase() : AbstractControl("SteerDeltaDown기본
   hlayout->addWidget(&btnplus);
 
   QObject::connect(&btnminus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("SteerDeltaDownBaseAdj"));
+    auto str = QString::fromStdString(params.get("SteerDeltaDownBaseAdj"));
     int value = str.toInt();
     value = value - 1;
     if (value <= 3 ) {
       value = 3;
     }
     QString values = QString::number(value);
-    Params().put("SteerDeltaDownBaseAdj", values.toStdString());
+    params.put("SteerDeltaDownBaseAdj", values.toStdString());
     refresh();
   });
   
   QObject::connect(&btnplus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("SteerDeltaDownBaseAdj"));
+    auto str = QString::fromStdString(params.get("SteerDeltaDownBaseAdj"));
     int value = str.toInt();
     value = value + 1;
     if (value >= 15 ) {
       value = 15;
     }
     QString values = QString::number(value);
-    Params().put("SteerDeltaDownBaseAdj", values.toStdString());
+    params.put("SteerDeltaDownBaseAdj", values.toStdString());
     refresh();
   });
   refresh();
 }
 
 void SteerDeltaDownBase::refresh() {
-  label.setText(QString::fromStdString(Params().get("SteerDeltaDownBaseAdj")));
+  label.setText(QString::fromStdString(params.get("SteerDeltaDownBaseAdj")));
   btnminus.setText("－");
   btnplus.setText("＋");
 }
@@ -2865,33 +2856,33 @@ SteerDeltaDownMax::SteerDeltaDownMax() : AbstractControl("SteerDeltaDown최대�
   hlayout->addWidget(&btnplus);
 
   QObject::connect(&btnminus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("SteerDeltaDownAdj"));
+    auto str = QString::fromStdString(params.get("SteerDeltaDownAdj"));
     int value = str.toInt();
     value = value - 1;
     if (value <= 7 ) {
       value = 7;
     }
     QString values = QString::number(value);
-    Params().put("SteerDeltaDownAdj", values.toStdString());
+    params.put("SteerDeltaDownAdj", values.toStdString());
     refresh();
   });
   
   QObject::connect(&btnplus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("SteerDeltaDownAdj"));
+    auto str = QString::fromStdString(params.get("SteerDeltaDownAdj"));
     int value = str.toInt();
     value = value + 1;
     if (value >= 15 ) {
       value = 15;
     }
     QString values = QString::number(value);
-    Params().put("SteerDeltaDownAdj", values.toStdString());
+    params.put("SteerDeltaDownAdj", values.toStdString());
     refresh();
   });
   refresh();
 }
 
 void SteerDeltaDownMax::refresh() {
-  label.setText(QString::fromStdString(Params().get("SteerDeltaDownAdj")));
+  label.setText(QString::fromStdString(params.get("SteerDeltaDownAdj")));
   btnminus.setText("－");
   btnplus.setText("＋");
 }
@@ -2924,33 +2915,33 @@ SteerThreshold::SteerThreshold() : AbstractControl("SteerThreshold", "SteerThres
   hlayout->addWidget(&btnplus);
 
   QObject::connect(&btnminus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("SteerThreshold"));
+    auto str = QString::fromStdString(params.get("SteerThreshold"));
     int value = str.toInt();
     value = value - 10;
     if (value <= 50 ) {
       value = 50;
     }
     QString values = QString::number(value);
-    Params().put("SteerThreshold", values.toStdString());
+    params.put("SteerThreshold", values.toStdString());
     refresh();
   });
   
   QObject::connect(&btnplus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("SteerThreshold"));
+    auto str = QString::fromStdString(params.get("SteerThreshold"));
     int value = str.toInt();
     value = value + 10;
     if (value >= 300 ) {
       value = 300;
     }
     QString values = QString::number(value);
-    Params().put("SteerThreshold", values.toStdString());
+    params.put("SteerThreshold", values.toStdString());
     refresh();
   });
   refresh();
 }
 
 void SteerThreshold::refresh() {
-  label.setText(QString::fromStdString(Params().get("SteerThreshold")));
+  label.setText(QString::fromStdString(params.get("SteerThreshold")));
   btnminus.setText("－");
   btnplus.setText("＋");
 }
@@ -2984,33 +2975,33 @@ LateralControl::LateralControl() : AbstractControl("조향제어", "조향제어
   hlayout->addWidget(&btnplus);
 
   QObject::connect(&btnminus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("LateralControlMethod"));
+    auto str = QString::fromStdString(params.get("LateralControlMethod"));
     int latcontrol = str.toInt();
     latcontrol = latcontrol - 1;
     if (latcontrol <= 0 ) {
       latcontrol = 0;
     }
     QString latcontrols = QString::number(latcontrol);
-    Params().put("LateralControlMethod", latcontrols.toStdString());
+    params.put("LateralControlMethod", latcontrols.toStdString());
     refresh();
   });
 
   QObject::connect(&btnplus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("LateralControlMethod"));
+    auto str = QString::fromStdString(params.get("LateralControlMethod"));
     int latcontrol = str.toInt();
     latcontrol = latcontrol + 1;
     if (latcontrol >= 2 ) {
       latcontrol = 2;
     }
     QString latcontrols = QString::number(latcontrol);
-    Params().put("LateralControlMethod", latcontrols.toStdString());
+    params.put("LateralControlMethod", latcontrols.toStdString());
     refresh();
   });
   refresh();
 }
 
 void LateralControl::refresh() {
-  QString latcontrol = QString::fromStdString(Params().get("LateralControlMethod"));
+  QString latcontrol = QString::fromStdString(params.get("LateralControlMethod"));
   if (latcontrol == "0") {
     label.setText(QString::fromStdString("PID"));
   } else if (latcontrol == "1") {
@@ -3050,33 +3041,33 @@ PidKp::PidKp() : AbstractControl("Kp", "Kp값을 조정합니다.", "../assets/o
   hlayout->addWidget(&btnplus);
 
   QObject::connect(&btnminus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("PidKp"));
+    auto str = QString::fromStdString(params.get("PidKp"));
     int value = str.toInt();
     value = value - 1;
     if (value <= 1 ) {
       value = 1;
     }
     QString values = QString::number(value);
-    Params().put("PidKp", values.toStdString());
+    params.put("PidKp", values.toStdString());
     refresh();
   });
   
   QObject::connect(&btnplus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("PidKp"));
+    auto str = QString::fromStdString(params.get("PidKp"));
     int value = str.toInt();
     value = value + 1;
     if (value >= 50 ) {
       value = 50;
     }
     QString values = QString::number(value);
-    Params().put("PidKp", values.toStdString());
+    params.put("PidKp", values.toStdString());
     refresh();
   });
   refresh();
 }
 
 void PidKp::refresh() {
-  auto strs = QString::fromStdString(Params().get("PidKp"));
+  auto strs = QString::fromStdString(params.get("PidKp"));
   int valuei = strs.toInt();
   float valuef = valuei * 0.01;
   QString valuefs = QString::number(valuef);
@@ -3113,33 +3104,33 @@ PidKi::PidKi() : AbstractControl("Ki", "Ki값을 조정합니다.", "../assets/o
   hlayout->addWidget(&btnplus);
 
   QObject::connect(&btnminus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("PidKi"));
+    auto str = QString::fromStdString(params.get("PidKi"));
     int value = str.toInt();
     value = value - 1;
     if (value <= 1 ) {
       value = 1;
     }
     QString values = QString::number(value);
-    Params().put("PidKi", values.toStdString());
+    params.put("PidKi", values.toStdString());
     refresh();
   });
   
   QObject::connect(&btnplus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("PidKi"));
+    auto str = QString::fromStdString(params.get("PidKi"));
     int value = str.toInt();
     value = value + 1;
     if (value >= 100 ) {
       value = 100;
     }
     QString values = QString::number(value);
-    Params().put("PidKi", values.toStdString());
+    params.put("PidKi", values.toStdString());
     refresh();
   });
   refresh();
 }
 
 void PidKi::refresh() {
-  auto strs = QString::fromStdString(Params().get("PidKi"));
+  auto strs = QString::fromStdString(params.get("PidKi"));
   int valuei = strs.toInt();
   float valuef = valuei * 0.001;
   QString valuefs = QString::number(valuef);
@@ -3176,33 +3167,33 @@ PidKd::PidKd() : AbstractControl("Kd", "Kd값을 조정합니다.", "../assets/o
   hlayout->addWidget(&btnplus);
 
   QObject::connect(&btnminus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("PidKd"));
+    auto str = QString::fromStdString(params.get("PidKd"));
     int value = str.toInt();
     value = value - 1;
     if (value <= 0 ) {
       value = 0;
     }
     QString values = QString::number(value);
-    Params().put("PidKd", values.toStdString());
+    params.put("PidKd", values.toStdString());
     refresh();
   });
   
   QObject::connect(&btnplus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("PidKd"));
+    auto str = QString::fromStdString(params.get("PidKd"));
     int value = str.toInt();
     value = value + 1;
     if (value >= 300 ) {
       value = 300;
     }
     QString values = QString::number(value);
-    Params().put("PidKd", values.toStdString());
+    params.put("PidKd", values.toStdString());
     refresh();
   });
   refresh();
 }
 
 void PidKd::refresh() {
-  auto strs = QString::fromStdString(Params().get("PidKd"));
+  auto strs = QString::fromStdString(params.get("PidKd"));
   int valuei = strs.toInt();
   float valuef = valuei * 0.01;
   QString valuefs = QString::number(valuef);
@@ -3239,33 +3230,33 @@ PidKf::PidKf() : AbstractControl("Kf", "Kf값을 조정합니다.", "../assets/o
   hlayout->addWidget(&btnplus);
 
   QObject::connect(&btnminus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("PidKf"));
+    auto str = QString::fromStdString(params.get("PidKf"));
     int value = str.toInt();
     value = value - 1;
     if (value <= 1 ) {
       value = 1;
     }
     QString values = QString::number(value);
-    Params().put("PidKf", values.toStdString());
+    params.put("PidKf", values.toStdString());
     refresh();
   });
   
   QObject::connect(&btnplus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("PidKf"));
+    auto str = QString::fromStdString(params.get("PidKf"));
     int value = str.toInt();
     value = value + 1;
     if (value >= 50 ) {
       value = 50;
     }
     QString values = QString::number(value);
-    Params().put("PidKf", values.toStdString());
+    params.put("PidKf", values.toStdString());
     refresh();
   });
   refresh();
 }
 
 void PidKf::refresh() {
-  auto strs = QString::fromStdString(Params().get("PidKf"));
+  auto strs = QString::fromStdString(params.get("PidKf"));
   int valuei = strs.toInt();
   float valuef = valuei * 0.00001;
   QString valuefs = QString::number(valuef, 'f', 5);
@@ -3302,33 +3293,33 @@ IgnoreZone::IgnoreZone() : AbstractControl("IgnoreZone", "IgnoreZone값을 조�
   hlayout->addWidget(&btnplus);
 
   QObject::connect(&btnminus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("IgnoreZone"));
+    auto str = QString::fromStdString(params.get("IgnoreZone"));
     int value = str.toInt();
     value = value - 1;
     if (value <= 0 ) {
       value = 0;
     }
     QString values = QString::number(value);
-    Params().put("IgnoreZone", values.toStdString());
+    params.put("IgnoreZone", values.toStdString());
     refresh();
   });
   
   QObject::connect(&btnplus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("IgnoreZone"));
+    auto str = QString::fromStdString(params.get("IgnoreZone"));
     int value = str.toInt();
     value = value + 1;
     if (value >= 30 ) {
       value = 30;
     }
     QString values = QString::number(value);
-    Params().put("IgnoreZone", values.toStdString());
+    params.put("IgnoreZone", values.toStdString());
     refresh();
   });
   refresh();
 }
 
 void IgnoreZone::refresh() {
-  auto strs = QString::fromStdString(Params().get("IgnoreZone"));
+  auto strs = QString::fromStdString(params.get("IgnoreZone"));
   int valuei = strs.toInt();
   float valuef = valuei * 0.1;
   QString valuefs = QString::number(valuef);
@@ -3365,33 +3356,33 @@ OuterLoopGain::OuterLoopGain() : AbstractControl("OuterLoopGain", "OuterLoopGain
   hlayout->addWidget(&btnplus);
 
   QObject::connect(&btnminus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("OuterLoopGain"));
+    auto str = QString::fromStdString(params.get("OuterLoopGain"));
     int value = str.toInt();
     value = value - 1;
     if (value <= 1 ) {
       value = 1;
     }
     QString values = QString::number(value);
-    Params().put("OuterLoopGain", values.toStdString());
+    params.put("OuterLoopGain", values.toStdString());
     refresh();
   });
   
   QObject::connect(&btnplus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("OuterLoopGain"));
+    auto str = QString::fromStdString(params.get("OuterLoopGain"));
     int value = str.toInt();
     value = value + 1;
     if (value >= 200 ) {
       value = 200;
     }
     QString values = QString::number(value);
-    Params().put("OuterLoopGain", values.toStdString());
+    params.put("OuterLoopGain", values.toStdString());
     refresh();
   });
   refresh();
 }
 
 void OuterLoopGain::refresh() {
-  auto strs = QString::fromStdString(Params().get("OuterLoopGain"));
+  auto strs = QString::fromStdString(params.get("OuterLoopGain"));
   int valuei = strs.toInt();
   float valuef = valuei * 0.1;
   QString valuefs = QString::number(valuef);
@@ -3428,33 +3419,33 @@ InnerLoopGain::InnerLoopGain() : AbstractControl("InnerLoopGain", "InnerLoopGain
   hlayout->addWidget(&btnplus);
 
   QObject::connect(&btnminus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("InnerLoopGain"));
+    auto str = QString::fromStdString(params.get("InnerLoopGain"));
     int value = str.toInt();
     value = value - 1;
     if (value <= 1 ) {
       value = 1;
     }
     QString values = QString::number(value);
-    Params().put("InnerLoopGain", values.toStdString());
+    params.put("InnerLoopGain", values.toStdString());
     refresh();
   });
   
   QObject::connect(&btnplus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("InnerLoopGain"));
+    auto str = QString::fromStdString(params.get("InnerLoopGain"));
     int value = str.toInt();
     value = value + 1;
     if (value >= 200 ) {
       value = 200;
     }
     QString values = QString::number(value);
-    Params().put("InnerLoopGain", values.toStdString());
+    params.put("InnerLoopGain", values.toStdString());
     refresh();
   });
   refresh();
 }
 
 void InnerLoopGain::refresh() {
-  auto strs = QString::fromStdString(Params().get("InnerLoopGain"));
+  auto strs = QString::fromStdString(params.get("InnerLoopGain"));
   int valuei = strs.toInt();
   float valuef = valuei * 0.1;
   QString valuefs = QString::number(valuef);
@@ -3491,33 +3482,33 @@ TimeConstant::TimeConstant() : AbstractControl("TimeConstant", "TimeConstant값�
   hlayout->addWidget(&btnplus);
 
   QObject::connect(&btnminus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("TimeConstant"));
+    auto str = QString::fromStdString(params.get("TimeConstant"));
     int value = str.toInt();
     value = value - 1;
     if (value <= 1 ) {
       value = 1;
     }
     QString values = QString::number(value);
-    Params().put("TimeConstant", values.toStdString());
+    params.put("TimeConstant", values.toStdString());
     refresh();
   });
   
   QObject::connect(&btnplus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("TimeConstant"));
+    auto str = QString::fromStdString(params.get("TimeConstant"));
     int value = str.toInt();
     value = value + 1;
     if (value >= 200 ) {
       value = 200;
     }
     QString values = QString::number(value);
-    Params().put("TimeConstant", values.toStdString());
+    params.put("TimeConstant", values.toStdString());
     refresh();
   });
   refresh();
 }
 
 void TimeConstant::refresh() {
-  auto strs = QString::fromStdString(Params().get("TimeConstant"));
+  auto strs = QString::fromStdString(params.get("TimeConstant"));
   int valuei = strs.toInt();
   float valuef = valuei * 0.1;
   QString valuefs = QString::number(valuef);
@@ -3554,33 +3545,33 @@ ActuatorEffectiveness::ActuatorEffectiveness() : AbstractControl("ActuatorEffect
   hlayout->addWidget(&btnplus);
 
   QObject::connect(&btnminus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("ActuatorEffectiveness"));
+    auto str = QString::fromStdString(params.get("ActuatorEffectiveness"));
     int value = str.toInt();
     value = value - 1;
     if (value <= 1 ) {
       value = 1;
     }
     QString values = QString::number(value);
-    Params().put("ActuatorEffectiveness", values.toStdString());
+    params.put("ActuatorEffectiveness", values.toStdString());
     refresh();
   });
   
   QObject::connect(&btnplus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("ActuatorEffectiveness"));
+    auto str = QString::fromStdString(params.get("ActuatorEffectiveness"));
     int value = str.toInt();
     value = value + 1;
     if (value >= 200 ) {
       value = 200;
     }
     QString values = QString::number(value);
-    Params().put("ActuatorEffectiveness", values.toStdString());
+    params.put("ActuatorEffectiveness", values.toStdString());
     refresh();
   });
   refresh();
 }
 
 void ActuatorEffectiveness::refresh() {
-  auto strs = QString::fromStdString(Params().get("ActuatorEffectiveness"));
+  auto strs = QString::fromStdString(params.get("ActuatorEffectiveness"));
   int valuei = strs.toInt();
   float valuef = valuei * 0.1;
   QString valuefs = QString::number(valuef);
@@ -3617,33 +3608,33 @@ Scale::Scale() : AbstractControl("Scale", "Scale값을 조정합니다.", "../as
   hlayout->addWidget(&btnplus);
 
   QObject::connect(&btnminus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("Scale"));
+    auto str = QString::fromStdString(params.get("Scale"));
     int value = str.toInt();
     value = value - 50;
     if (value <= 50 ) {
       value = 50;
     }
     QString values = QString::number(value);
-    Params().put("Scale", values.toStdString());
+    params.put("Scale", values.toStdString());
     refresh();
   });
   
   QObject::connect(&btnplus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("Scale"));
+    auto str = QString::fromStdString(params.get("Scale"));
     int value = str.toInt();
     value = value + 50;
     if (value >= 5000 ) {
       value = 5000;
     }
     QString values = QString::number(value);
-    Params().put("Scale", values.toStdString());
+    params.put("Scale", values.toStdString());
     refresh();
   });
   refresh();
 }
 
 void Scale::refresh() {
-  label.setText(QString::fromStdString(Params().get("Scale")));
+  label.setText(QString::fromStdString(params.get("Scale")));
   btnminus.setText("－");
   btnplus.setText("＋");
 }
@@ -3676,33 +3667,33 @@ LqrKi::LqrKi() : AbstractControl("LqrKi", "ki값을 조정합니다.", "../asset
   hlayout->addWidget(&btnplus);
 
   QObject::connect(&btnminus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("LqrKi"));
+    auto str = QString::fromStdString(params.get("LqrKi"));
     int value = str.toInt();
     value = value - 1;
     if (value <= 1 ) {
       value = 1;
     }
     QString values = QString::number(value);
-    Params().put("LqrKi", values.toStdString());
+    params.put("LqrKi", values.toStdString());
     refresh();
   });
   
   QObject::connect(&btnplus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("LqrKi"));
+    auto str = QString::fromStdString(params.get("LqrKi"));
     int value = str.toInt();
     value = value + 1;
     if (value >= 100 ) {
       value = 100;
     }
     QString values = QString::number(value);
-    Params().put("LqrKi", values.toStdString());
+    params.put("LqrKi", values.toStdString());
     refresh();
   });
   refresh();
 }
 
 void LqrKi::refresh() {
-  auto strs = QString::fromStdString(Params().get("LqrKi"));
+  auto strs = QString::fromStdString(params.get("LqrKi"));
   int valuei = strs.toInt();
   float valuef = valuei * 0.001;
   QString valuefs = QString::number(valuef);
@@ -3739,33 +3730,33 @@ DcGain::DcGain() : AbstractControl("DcGain", "DcGain값을 조정합니다.", ".
   hlayout->addWidget(&btnplus);
 
   QObject::connect(&btnminus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("DcGain"));
+    auto str = QString::fromStdString(params.get("DcGain"));
     int value = str.toInt();
     value = value - 1;
     if (value <= 1 ) {
       value = 1;
     }
     QString values = QString::number(value);
-    Params().put("DcGain", values.toStdString());
+    params.put("DcGain", values.toStdString());
     refresh();
   });
   
   QObject::connect(&btnplus, &QPushButton::released, [=]() {
-    auto str = QString::fromStdString(Params().get("DcGain"));
+    auto str = QString::fromStdString(params.get("DcGain"));
     int value = str.toInt();
     value = value + 1;
     if (value >= 50 ) {
       value = 50;
     }
     QString values = QString::number(value);
-    Params().put("DcGain", values.toStdString());
+    params.put("DcGain", values.toStdString());
     refresh();
   });
   refresh();
 }
 
 void DcGain::refresh() {
-  auto strs = QString::fromStdString(Params().get("DcGain"));
+  auto strs = QString::fromStdString(params.get("DcGain"));
   int valuei = strs.toInt();
   float valuef = valuei * 0.0001;
   QString valuefs = QString::number(valuef);

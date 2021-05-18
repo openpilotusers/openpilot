@@ -102,8 +102,8 @@ class SpdController():
         self.curvature_gain = 1
 
         self.params = Params()
-        self.cruise_set_mode = int(self.params.get("CruiseStatemodeSelInit"))
-        self.map_spd_limit_offset = int(self.params.get('OpkrSpeedLimitOffset'))
+        self.cruise_set_mode = int(self.params.get("CruiseStatemodeSelInit", encoding="utf8"))
+        self.map_spd_limit_offset = int(self.params.get("OpkrSpeedLimitOffset", encoding="utf8"))
 
         self.map_spd_enable = False
         self.map_spd_camera = 0

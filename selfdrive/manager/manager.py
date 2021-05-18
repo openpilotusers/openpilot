@@ -9,7 +9,7 @@ import traceback
 import cereal.messaging as messaging
 import selfdrive.crash as crash
 from common.basedir import BASEDIR
-from common.params import Params
+from common.params import Params, ParamKeyType
 from common.text_window import TextWindow
 from selfdrive.boardd.set_time import set_time
 from selfdrive.hardware import EON, HARDWARE, PC, TICI
@@ -29,7 +29,7 @@ def manager_init():
   set_time(cloudlog)
 
   params = Params()
-  params.manager_start()
+  params.clear_all(ParamKeyType.CLEAR_ON_MANAGER_START)
 
   default_params = [
     ("CompletedTrainingVersion", "0"),
@@ -44,6 +44,7 @@ def manager_init():
     ("OpkrUIVolumeBoost", "0"),
     ("OpkrEnableDriverMonitoring", "1"),
     ("OpkrEnableLogger", "0"),
+    ("OpkrEnableUploader", "0"),
     ("OpkrEnableGetoffAlert", "1"),
     ("OpkrAutoResume", "1"),
     ("OpkrVariableCruise", "1"),
@@ -221,6 +222,8 @@ def manager_thread():
   # save boot log
   #subprocess.call("./bootlog", cwd=os.path.join(BASEDIR, "selfdrive/loggerd"))
 
+  params = Params()
+
   ignore = []
   if os.getenv("NOBOARD") is not None:
     ignore.append("pandad")
@@ -233,7 +236,6 @@ def manager_thread():
   ensure_running(managed_processes.values(), started=False, not_run=ignore)
 
   started_prev = False
-  params = Params()
   sm = messaging.SubMaster(['deviceState'])
   pm = messaging.PubMaster(['managerState'])
 

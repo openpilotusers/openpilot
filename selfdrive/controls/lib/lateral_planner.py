@@ -17,7 +17,7 @@ LaneChangeDirection = log.LateralPlan.LaneChangeDirection
 
 LOG_MPC = os.environ.get('LOG_MPC', False)
 
-LANE_CHANGE_SPEED_MIN = float(int(Params().get("OpkrLaneChangeSpeed")) * CV.KPH_TO_MS)
+LANE_CHANGE_SPEED_MIN = float(int(Params().get("OpkrLaneChangeSpeed", encoding="utf8")) * CV.KPH_TO_MS)
 LANE_CHANGE_TIME_MAX = 10.
 # this corresponds to 80deg/s and 20deg/s steering angle in a toyota corolla
 MAX_CURVATURE_RATES = [0.03762194918267951, 0.003441203371932992]
@@ -63,17 +63,17 @@ class LateralPlanner():
     self.laneless_mode_at_stopping = False
     self.laneless_mode_at_stopping_timer = 0
 
-    if int(Params().get("OpkrAutoLaneChangeDelay")) == 0:
+    if int(Params().get("OpkrAutoLaneChangeDelay", encoding="utf8")) == 0:
       self.lane_change_auto_delay = 0.0
-    elif int(Params().get("OpkrAutoLaneChangeDelay")) == 1:
+    elif int(Params().get("OpkrAutoLaneChangeDelay", encoding="utf8")) == 1:
       self.lane_change_auto_delay = 0.2
-    elif int(Params().get("OpkrAutoLaneChangeDelay")) == 2:
+    elif int(Params().get("OpkrAutoLaneChangeDelay", encoding="utf8")) == 2:
       self.lane_change_auto_delay = 0.5
-    elif int(Params().get("OpkrAutoLaneChangeDelay")) == 3:
+    elif int(Params().get("OpkrAutoLaneChangeDelay", encoding="utf8")) == 3:
       self.lane_change_auto_delay = 1.0
-    elif int(Params().get("OpkrAutoLaneChangeDelay")) == 4:
+    elif int(Params().get("OpkrAutoLaneChangeDelay", encoding="utf8")) == 4:
       self.lane_change_auto_delay = 1.5
-    elif int(Params().get("OpkrAutoLaneChangeDelay")) == 5:
+    elif int(Params().get("OpkrAutoLaneChangeDelay", encoding="utf8")) == 5:
       self.lane_change_auto_delay = 2.0
 
     self.lane_change_wait_timer = 0.0
@@ -90,7 +90,7 @@ class LateralPlanner():
     self.t_idxs = np.arange(TRAJECTORY_SIZE)
     self.y_pts = np.zeros(TRAJECTORY_SIZE)
 
-    self.lane_change_adjust = [0.12, 0.19, 0.9, 1.4]
+    self.lane_change_adjust = [0.11, 0.18, 0.75, 1.25]
     self.lane_change_adjust_vel = [8.3, 16, 22, 30]
     self.lane_change_adjust_new = 0.0
 
@@ -119,7 +119,7 @@ class LateralPlanner():
 
   def update(self, sm, CP):
     self.use_lanelines = not Params().get_bool("EndToEndToggle")
-    self.laneless_mode = int(Params().get('LanelessMode'))
+    self.laneless_mode = int(Params().get("LanelessMode", encoding="utf8")) if Params().get("LanelessMode", encoding="utf8") is not None else 0
     self.v_cruise_kph = sm['controlsState'].vCruise
     self.stand_still = sm['carState'].standStill
     try:

@@ -1,10 +1,11 @@
+#include "networking.h"
+
 #include <QDebug>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QPixmap>
 
-#include "networking.hpp"
-#include "widgets/scrollview.hpp"
+#include "selfdrive/ui/qt/widgets/scrollview.h"
 
 void clearLayout(QLayout* layout) {
   while (QLayoutItem* item = layout->takeAt(0)) {

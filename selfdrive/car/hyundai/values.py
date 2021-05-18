@@ -8,9 +8,9 @@ Ecu = car.CarParams.Ecu
 # Steer torque limits
 class CarControllerParams:
   params = Params()
-  STEER_MAX = int(params.get("SteerMaxAdj"))   # default 384
-  STEER_DELTA_UP = int(params.get("SteerDeltaUpAdj"))
-  STEER_DELTA_DOWN = int(params.get("SteerDeltaDownAdj"))
+  STEER_MAX = int(params.get("SteerMaxAdj", encoding="utf8"))   # default 384
+  STEER_DELTA_UP = int(params.get("SteerDeltaUpAdj", encoding="utf8"))
+  STEER_DELTA_DOWN = int(params.get("SteerDeltaDownAdj", encoding="utf8"))
   STEER_DRIVER_ALLOWANCE = 50
   STEER_DRIVER_MULTIPLIER = 2
   STEER_DRIVER_FACTOR = 1
@@ -601,4 +601,4 @@ DBC = {
   CAR.SOUL_EV: dbc_dict('hyundai_kia_generic', None),
 }
 
-STEER_THRESHOLD = int(Params().get("SteerThreshold"))
+STEER_THRESHOLD = int(Params().get("SteerThreshold", encoding="utf8"))

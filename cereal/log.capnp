@@ -284,6 +284,9 @@ struct DeviceState @0xa4d8b5af2aa492eb {
   networkStrength @24 :NetworkStrength;
   carBatteryCapacityUwh @25 :UInt32;
 
+  # atom
+  wifiIpAddress @31 :Text;
+
   fanSpeedPercentDesired @10 :UInt16;
   started @11 :Bool;
   startedMonoTime @13 :UInt64;
@@ -303,8 +306,6 @@ struct DeviceState @0xa4d8b5af2aa492eb {
   batteryTempC @29 :Float32;
   ambientTempC @30 :Float32;
   thermalStatus @14 :ThermalStatus;
-
-  ipAddr @31 :Text;
 
   enum ThermalStatus {
     green @0;
@@ -1111,6 +1112,7 @@ struct UbloxGnss {
     aStatus @2 :AntennaSupervisorState;
     aPower @3 :AntennaPowerStatus;
     jamInd @4 :UInt8;
+    flags @5 :UInt8;
 
     enum AntennaSupervisorState {
       init @0;
@@ -1233,9 +1235,11 @@ struct DriverMonitoringState @0xb83cda094a1da284 {
 
 struct Boot {
   wallTimeNanos @0 :UInt64;
-  lastKmsg @1 :Data;
-  lastPmsg @2 :Data;
+  pstore @4 :Map(Text, Data);
   launchLog @3 :Text;
+
+  lastKmsgDEPRECATED @1 :Data;
+  lastPmsgDEPRECATED @2 :Data;
 }
 
 struct LiveParametersData {

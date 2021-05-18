@@ -1,17 +1,18 @@
+#include "selfdrive/ui/qt/home.h"
+
 #include <QDateTime>
 #include <QHBoxLayout>
 #include <QMouseEvent>
 #include <QVBoxLayout>
 #include <QProcess>
+#include <QSoundEffect>
 
-#include "common/util.h"
-#include "common/params.h"
-#include "common/timing.h"
-#include "common/swaglog.h"
-
-#include "home.hpp"
-#include "widgets/drive_stats.hpp"
-#include "widgets/setup.hpp"
+#include "selfdrive/common/params.h"
+#include "selfdrive/common/swaglog.h"
+#include "selfdrive/common/timing.h"
+#include "selfdrive/common/util.h"
+#include "selfdrive/ui/qt/widgets/drive_stats.h"
+#include "selfdrive/ui/qt/widgets/setup.h"
 
 // HomeWindow: the container for the offroad and onroad UIs
 
@@ -31,6 +32,7 @@ HomeWindow::HomeWindow(QWidget* parent) : QWidget(parent) {
   onroad = new OnroadWindow(this);
   slayout->addWidget(onroad);
   QObject::connect(this, &HomeWindow::update, onroad, &OnroadWindow::update);
+  QObject::connect(this, &HomeWindow::offroadTransitionSignal, onroad, &OnroadWindow::offroadTransition);
 
   home = new OffroadHome();
   slayout->addWidget(home);
@@ -46,6 +48,7 @@ void HomeWindow::offroadTransition(bool offroad) {
     slayout->setCurrentWidget(onroad);
   }
   sidebar->setVisible(offroad);
+  emit offroadTransitionSignal(offroad);
 }
 
 void HomeWindow::mousePressEvent(QMouseEvent* e) {
@@ -55,34 +58,29 @@ void HomeWindow::mousePressEvent(QMouseEvent* e) {
     QUIState::ui_state.scene.driver_view = false;
     return;
   }
-  // OPKR Settings button double click
-  if (sidebar->isVisible() && settings_btn.ptInRect(e->x(), e->y())) {
-    QUIState::ui_state.scene.setbtn_count = QUIState::ui_state.scene.setbtn_count + 1;
-    if (QUIState::ui_state.scene.setbtn_count > 1) {
-      emit openSettings();
-    }
-    return;
-  }
-  // OPKR home button double click
-  if (sidebar->isVisible() && QUIState::ui_state.scene.car_state.getVEgo() < 0.5 && home_btn.ptInRect(e->x(), e->y())) {
-    QUIState::ui_state.scene.homebtn_count = QUIState::ui_state.scene.homebtn_count + 1;
-    if (QUIState::ui_state.scene.homebtn_count > 1) {
-      QProcess::execute("/data/openpilot/run_mixplorer.sh");
-    }
-    return;
-  }
   // OPKR add map
   if (QUIState::ui_state.scene.started && map_overlay_btn.ptInRect(e->x(), e->y())) {
-    QUIState::ui_state.sound->play(AudibleAlert::CHIME_WARNING1);
+    QSoundEffect effect1;
+    effect1.setSource(QUrl::fromLocalFile("/data/openpilot/selfdrive/assets/sounds/warning_1.wav"));
+    //effect1.setLoopCount(1);
+    //effect1.setLoopCount(QSoundEffect::Infinite);
+    //effect1.setVolume(0.1);
+    effect1.play();
     QProcess::execute("am start --activity-task-on-home com.opkr.maphack/com.opkr.maphack.MainActivity");
     QUIState::ui_state.scene.map_on_top = false;
     QUIState::ui_state.scene.map_on_overlay = !QUIState::ui_state.scene.map_on_overlay;
     return;
   }
   if (QUIState::ui_state.scene.started && !sidebar->isVisible() && !QUIState::ui_state.scene.map_on_top && map_btn.ptInRect(e->x(), e->y())) {
-    QUIState::ui_state.sound->play(AudibleAlert::CHIME_WARNING1);
-    QProcess::execute("am start --activity-task-on-home com.skt.tmap.ku/com.skt.tmap.activity.TmapNaviActivity");
+    QSoundEffect effect2;
+    effect2.setSource(QUrl::fromLocalFile("/data/openpilot/selfdrive/assets/sounds/warning_1.wav"));
+    //effect2.setLoopCount(1);
+    //effect2.setLoopCount(QSoundEffect::Infinite);
+    //effect2.setVolume(0.1);
+    effect2.play();
+    QProcess::execute("am start com.skt.tmap.ku/com.skt.tmap.activity.TmapNaviActivity");
     QUIState::ui_state.scene.map_on_top = true;
+    Params().put("OpkrMapEnable", "1", 1);
     return;
   }
   // OPKR REC
@@ -140,7 +138,7 @@ void HomeWindow::mousePressEvent(QMouseEvent* e) {
     return;
   }
   // Handle sidebar collapsing
-  if (childAt(e->pos()) == onroad) {
+  if (onroad->isVisible() && (!sidebar->isVisible() || e->x() > sidebar->width())) {
     sidebar->setVisible(!sidebar->isVisible());
     QUIState::ui_state.sidebar_view = !QUIState::ui_state.sidebar_view;
   }
@@ -148,7 +146,6 @@ void HomeWindow::mousePressEvent(QMouseEvent* e) {
   QUIState::ui_state.scene.setbtn_count = 0;
   QUIState::ui_state.scene.homebtn_count = 0;
 }
-
 
 // OffroadHome: the offroad home page
 
@@ -187,7 +184,6 @@ OffroadHome::OffroadHome(QWidget* parent) : QFrame(parent) {
   statsAndSetup->addWidget(drive);
 
   SetupWidget* setup = new SetupWidget;
-  //setup->setFixedSize(700, 700);
   statsAndSetup->addWidget(setup);
 
   QWidget* statsAndSetupWidget = new QWidget();
@@ -205,7 +201,6 @@ OffroadHome::OffroadHome(QWidget* parent) : QFrame(parent) {
   // set up refresh timer
   timer = new QTimer(this);
   QObject::connect(timer, &QTimer::timeout, this, &OffroadHome::refresh);
-  refresh();
   timer->start(10 * 1000);
 
   setLayout(main_layout);
@@ -217,6 +212,10 @@ OffroadHome::OffroadHome(QWidget* parent) : QFrame(parent) {
      color: white;
     }
   )");
+}
+
+void OffroadHome::showEvent(QShowEvent *event) {
+  refresh();
 }
 
 void OffroadHome::openAlerts() {

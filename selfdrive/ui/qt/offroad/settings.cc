@@ -1,23 +1,24 @@
-#include <string>
+#include "settings.h"
+
+#include <cassert>
 #include <iostream>
 #include <sstream>
-#include <cassert>
+#include <string>
 #include <QProcess>
 
 #ifndef QCOM
-#include "networking.hpp"
+#include "selfdrive/ui/qt/offroad/networking.h"
 #endif
-#include "settings.hpp"
-#include "widgets/input.hpp"
-#include "widgets/toggle.hpp"
-#include "widgets/offroad_alerts.hpp"
-#include "widgets/scrollview.hpp"
-#include "widgets/controls.hpp"
-#include "widgets/ssh_keys.hpp"
-#include "common/params.h"
-#include "common/util.h"
+#include "selfdrive/common/params.h"
+#include "selfdrive/common/util.h"
 #include "selfdrive/hardware/hw.h"
-#include "ui.hpp"
+#include "selfdrive/ui/qt/widgets/controls.h"
+#include "selfdrive/ui/qt/widgets/input.h"
+#include "selfdrive/ui/qt/widgets/offroad_alerts.h"
+#include "selfdrive/ui/qt/widgets/scrollview.h"
+#include "selfdrive/ui/qt/widgets/ssh_keys.h"
+#include "selfdrive/ui/qt/widgets/toggle.h"
+#include "selfdrive/ui/ui.h"
 
 TogglesPanel::TogglesPanel(QWidget *parent) : QWidget(parent) {
   QVBoxLayout *toggles_list = new QVBoxLayout();
@@ -89,8 +90,13 @@ TogglesPanel::TogglesPanel(QWidget *parent) : QWidget(parent) {
                                   "../assets/offroad/icon_shell.png",
                                   this));
   toggles.append(new ParamControl("OpkrEnableLogger",
-                                  "로그기록 및 업로드 사용",
-                                  "주행로그를 기록 후 콤마서버로 전송합니다.",
+                                  "주행로그 기록 사용",
+                                  "데이터 분석을 위해 주행로그를 기록합니다.",
+                                  "../assets/offroad/icon_shell.png",
+                                  this));
+  toggles.append(new ParamControl("OpkrEnableUploader",
+                                  "주행로그 서버 전송(사용주의-설명참조)",
+                                  "주행로그를 콤마서버로 전송합니다. 판다 세이프티 코드 및 모니터링 수치를 수정한 경우는 활성화하지 마십시오. 기기가 콤마 네트워크로부터 차단되며 standalone상태로만 동작됩니다.",
                                   "../assets/offroad/icon_shell.png",
                                   this));
   toggles.append(new ParamControl("OpenpilotLongitudinalControl",
@@ -105,7 +111,7 @@ TogglesPanel::TogglesPanel(QWidget *parent) : QWidget(parent) {
                                   this));
   toggles.append(new ParamControl("CommaStockUI",
                                   "Comma Stock UI 사용",
-                                  "주행화면을 콤마의 순정 UI를 사용합니다.",
+                                  "주행화면을 콤마의 순정 UI를 사용합니다. 주행화면 좌측상단의 박스를 눌러도 실시간 전환 가능합니다.",
                                   "../assets/offroad/icon_shell.png",
                                   this));
 
@@ -453,6 +459,13 @@ QWidget * user_panel(QWidget * parent) {
                                           std::system(record_del);
                                         }
                                       }));
+  const char* realdata_del = "rm -rf /storage/emulated/0/realdata/*";
+  layout->addWidget(new ButtonControl("주행로그 전부 삭제", "실행", "저장된 주행로그를 모두 삭제합니다.",
+                                      [=]() { 
+                                        if (ConfirmationDialog::confirm("저장된 주행로그를 모두 삭제합니다. 진행하시겠습니까?")){
+                                          std::system(realdata_del);
+                                        }
+                                      }));
   layout->addWidget(new MonitoringMode());
   layout->addWidget(new MonitorEyesThreshold());
   layout->addWidget(new NormalEyesThreshold());
@@ -590,7 +603,13 @@ QWidget * tuning_panel(QWidget * parent) {
   return w;
 }
 
-SettingsWindow::SettingsWindow(QWidget *parent) : QFrame(parent) {
+void SettingsWindow::showEvent(QShowEvent *event) {
+  if (layout()) {
+    panel_widget->setCurrentIndex(0);
+    nav_btns->buttons()[0]->setChecked(true);
+    return;
+  }
+
   // setup two main layouts
   QVBoxLayout *sidebar_layout = new QVBoxLayout();
   sidebar_layout->setMargin(0);
@@ -632,6 +651,7 @@ SettingsWindow::SettingsWindow(QWidget *parent) : QFrame(parent) {
   for (auto &[name, panel] : panels) {
     QPushButton *btn = new QPushButton(name);
     btn->setCheckable(true);
+    btn->setChecked(nav_btns->buttons().size() == 0);
     btn->setStyleSheet(R"(
       QPushButton {
         color: grey;
@@ -695,9 +715,3 @@ void SettingsWindow::hideEvent(QHideEvent *event){
     }
   }
 }
-
-void SettingsWindow::showEvent(QShowEvent *event){
-  panel_widget->setCurrentIndex(0);
-  nav_btns->buttons()[0]->setChecked(true);
-}
-

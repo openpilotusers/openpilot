@@ -171,7 +171,7 @@ class Controls:
     
     self.mpc_frame = 0
 
-    self.steerRatio_Max = float(int(Params().get("SteerRatioMaxAdj")) * 0.1)
+    self.steerRatio_Max = float(int(params.get("SteerRatioMaxAdj", encoding="utf8")) * 0.1)
     self.angle_differ_range = [0, 15]
     self.steerRatio_range = [self.CP.steerRatio, self.steerRatio_Max]
     self.new_steerRatio = self.CP.steerRatio
@@ -260,7 +260,9 @@ class Controls:
       self.events.add(EventName.radarFault)
     elif not self.sm.all_alive_and_valid() and self.sm['pandaState'].pandaType != PandaType.whitePanda and not self.commIssue_ignored:
       self.delayed_comm_issue_timer += 1
-      if self.delayed_comm_issue_timer > 100:
+      if self.delayed_comm_issue_timer > 200 and not Params().get_bool("OpkrMapEnable"):
+        self.events.add(EventName.commIssue)
+      elif self.delayed_comm_issue_timer > 600 and Params().get_bool("OpkrMapEnable"):
         self.events.add(EventName.commIssue)
       if not self.logged_comm_issue:
         cloudlog.error(f"commIssue - valid: {self.sm.valid} - alive: {self.sm.alive}")

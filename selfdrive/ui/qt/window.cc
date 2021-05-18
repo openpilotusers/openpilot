@@ -1,4 +1,5 @@
-#include "window.hpp"
+#include "window.h"
+
 #include "selfdrive/hardware/hw.h"
 
 MainWindow::MainWindow(QWidget *parent) : QWidget(parent) {
@@ -11,6 +12,7 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent) {
   QObject::connect(homeWindow, &HomeWindow::closeSettings, this, &MainWindow::closeSettings);
   QObject::connect(&qs, &QUIState::uiUpdate, homeWindow, &HomeWindow::update);
   QObject::connect(&qs, &QUIState::offroadTransition, homeWindow, &HomeWindow::offroadTransition);
+  QObject::connect(&qs, &QUIState::offroadTransition, homeWindow, &HomeWindow::offroadTransitionSignal);
   QObject::connect(&device, &Device::displayPowerChanged, homeWindow, &HomeWindow::displayPowerChanged);
 
   settingsWindow = new SettingsWindow(this);
@@ -30,6 +32,11 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent) {
   QObject::connect(&qs, &QUIState::uiUpdate, &device, &Device::update);
   QObject::connect(&qs, &QUIState::offroadTransition, this, &MainWindow::offroadTransition);
   QObject::connect(&device, &Device::displayPowerChanged, this, &MainWindow::closeSettings);
+
+  // load fonts
+  QFontDatabase::addApplicationFont("../assets/fonts/opensans_regular.ttf");
+  QFontDatabase::addApplicationFont("../assets/fonts/opensans_bold.ttf");
+  QFontDatabase::addApplicationFont("../assets/fonts/opensans_semibold.ttf");
 
   // no outline to prevent the focus rectangle
   setLayout(main_layout);

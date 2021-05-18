@@ -1,18 +1,20 @@
-#include <iostream>
-#include <stdio.h>
-#include <cmath>
-#include <unistd.h>
+#include "selfdrive/ui/ui.h"
+
 #include <assert.h>
+#include <stdio.h>
+#include <unistd.h>
 #include <string>
 
-#include "common/util.h"
-#include "common/swaglog.h"
-#include "common/visionimg.h"
-#include "common/watchdog.h"
-#include "hardware/hw.h"
-#include "ui.hpp"
-#include "paint.hpp"
-#include "qt_window.hpp"
+#include <cmath>
+#include <iostream>
+
+#include "selfdrive/common/swaglog.h"
+#include "selfdrive/common/util.h"
+#include "selfdrive/common/visionimg.h"
+#include "selfdrive/common/watchdog.h"
+#include "selfdrive/hardware/hw.h"
+#include "selfdrive/ui/paint.h"
+#include "selfdrive/ui/qt/qt_window.h"
 #include "dashcam.h"
 
 #define BACKLIGHT_DT 0.25
@@ -229,8 +231,6 @@ static void update_state(UIState *s) {
     s->scene.cpuPerc = scene.deviceState.getCpuUsagePercent();
     s->scene.cpuTemp = scene.deviceState.getCpuTempC()[0];
     s->scene.fanSpeed = scene.deviceState.getFanSpeedPercentDesired();
-    auto data = sm["deviceState"].getDeviceState();
-    snprintf(scene.ipAddr, sizeof(scene.ipAddr), "%s", data.getIpAddr().cStr());
   }
   if (sm.updated("pandaState")) {
     auto pandaState = sm["pandaState"].getPandaState();
@@ -264,11 +264,10 @@ static void update_state(UIState *s) {
   }
   if (sm.updated("sensorEvents")) {
     for (auto sensor : sm["sensorEvents"].getSensorEvents()) {
-      if (sensor.which() == cereal::SensorEventData::LIGHT) {
-#ifndef QCOM2
+      if (!Hardware::TICI() && sensor.which() == cereal::SensorEventData::LIGHT) {
         scene.light_sensor = sensor.getLight();
-#endif
-      } else if (!scene.started && sensor.which() == cereal::SensorEventData::ACCELERATION) {
+      }
+      if (!scene.started && sensor.which() == cereal::SensorEventData::ACCELERATION) {
         auto accel = sensor.getAcceleration().getV();
         if (accel.totalSize().wordCount){ // TODO: sometimes empty lists are received. Figure out why
           scene.accel_sensor = accel[2];
@@ -281,13 +280,11 @@ static void update_state(UIState *s) {
       }
     }
   }
-#ifdef QCOM2
-  if (sm.updated("roadCameraState")) {
+  if (Hardware::TICI() && sm.updated("roadCameraState")) {
     auto camera_state = sm["roadCameraState"].getRoadCameraState();
     float gain = camera_state.getGainFrac() * (camera_state.getGlobalGain() > 100 ? 2.5 : 1.0) / 10.0;
     scene.light_sensor = std::clamp<float>((1023.0 / 1757.0) * (1757.0 - camera_state.getIntegLines()) * (1.0 - gain), 0.0, 1023.0);
   }
-#endif
   scene.started = scene.deviceState.getStarted() || scene.driver_view;
 
   if (sm.updated("lateralPlan")) {
@@ -305,49 +302,6 @@ static void update_state(UIState *s) {
   }
 }
 
-static void update_alert(UIState *s) {
-  UIScene &scene = s->scene;
-  if (s->sm->updated("controlsState")) {
-    auto alert_sound = scene.controls_state.getAlertSound();
-    if (scene.alert_type.compare(scene.controls_state.getAlertType()) != 0) {
-      if (alert_sound == AudibleAlert::NONE) {
-        s->sound->stop();
-      } else {
-        s->sound->play(alert_sound);
-      }
-    }
-    scene.alert_text1 = scene.controls_state.getAlertText1();
-    scene.alert_text2 = scene.controls_state.getAlertText2();
-    scene.alert_size = scene.controls_state.getAlertSize();
-    scene.alert_type = scene.controls_state.getAlertType();
-    scene.alert_blinking_rate = scene.controls_state.getAlertBlinkingRate();
-  }
-
-  // Handle controls timeout
-  if (scene.deviceState.getStarted() && (s->sm->frame - scene.started_frame) > 10 * UI_FREQ) {
-    const uint64_t cs_frame = s->sm->rcv_frame("controlsState");
-    if (cs_frame < scene.started_frame) {
-      // car is started, but controlsState hasn't been seen at all
-      if( !s->is_OpenpilotViewEnabled ) {
-        scene.alert_text1 = "openpilot Unavailable";
-        scene.alert_text2 = "Waiting for controls to start";
-        scene.alert_size = cereal::ControlsState::AlertSize::MID;
-      }
-    } else if ((s->sm->frame - cs_frame) > 5 * UI_FREQ) {
-      // car is started, but controls is lagging or died
-      if (scene.alert_text2 != "Controls Unresponsive") {
-        s->sound->play(AudibleAlert::CHIME_WARNING_REPEAT);
-        LOGE("Controls unresponsive");
-      }
-
-      scene.alert_text1 = "TAKE CONTROL IMMEDIATELY";
-      scene.alert_text2 = "Controls Unresponsive";
-      scene.alert_size = cereal::ControlsState::AlertSize::FULL;
-      s->status = STATUS_ALERT;
-    }
-  }
-}
-
 static void update_params(UIState *s) {
   const uint64_t frame = s->sm->frame;
   UIScene &scene = s->scene;
@@ -357,11 +311,6 @@ static void update_params(UIState *s) {
     s->is_OpenpilotViewEnabled = params.getBool("IsOpenpilotViewEnabled");
     s->driving_record = params.getBool("OpkrDrivingRecord");
     scene.end_to_end = params.getBool("EndToEndToggle");
-  } else if (frame % (6*UI_FREQ) == 0) {
-    scene.athenaStatus = NET_DISCONNECTED;
-    if (auto last_ping = params.get<float>("LastAthenaPingTime"); last_ping) {
-      scene.athenaStatus = nanos_since_boot() - *last_ping < 70e9 ? NET_CONNECTED : NET_ERROR;
-    }
   }
 }
 
@@ -376,10 +325,8 @@ static void update_vision(UIState *s) {
     VisionBuf * buf = s->vipc_client->recv();
     if (buf != nullptr){
       s->last_frame = buf;
-    } else {
-#if defined(QCOM) || defined(QCOM2)
+    } else if (!Hardware::PC()) {
       LOGE("visionIPC receive timeout");
-#endif
     }
   }
 }
@@ -404,7 +351,6 @@ static void update_status(UIState *s) {
       s->scene.started_frame = s->sm->frame;
 
       s->scene.is_rhd = Params().getBool("IsRHD");
-      s->scene.alert_size = cereal::ControlsState::AlertSize::NONE;
       s->vipc_client = s->scene.driver_view ? s->vipc_client_front : s->vipc_client_rear;
       s->nDebugUi1 = Params().getBool("DebugUi1");
       s->nDebugUi2 = Params().getBool("DebugUi2");
@@ -418,12 +364,14 @@ static void update_status(UIState *s) {
       s->scene.monitoring_mode = std::stoi(Params().get("OpkrMonitoringMode"));
       s->scene.scr.autoScreenOff = std::stoi(Params().get("OpkrAutoScreenOff"));
       s->scene.scr.brightness = std::stoi(Params().get("OpkrUIBrightness"));
+      s->scene.scr.nVolumeBoost = std::stoi(Params().get("OpkrUIVolumeBoost"));
       s->scene.scr.nTime = s->scene.scr.autoScreenOff * 60 * UI_FREQ;
       s->scene.comma_stock_ui = Params().getBool("CommaStockUI");
       Params().put("ModelLongEnabled", "0", 1);
+      Params().put("OpkrMapEnable", "0", 1);
+      Params().put("LimitSetSpeedCamera", "0", 1);
+      Params().put("LimitSetSpeedCameraDist", "0", 1);
     } else {
-      s->status = STATUS_OFFROAD;
-      s->sound->stop();
       s->vipc_client->connected = false;
     }
   }
@@ -432,7 +380,6 @@ static void update_status(UIState *s) {
 
 
 QUIState::QUIState(QObject *parent) : QObject(parent) {
-  ui_state.sound = std::make_unique<Sound>();
   ui_state.sm = std::make_unique<SubMaster, const std::initializer_list<const char *>>({
     "modelV2", "controlsState", "liveCalibration", "radarState", "deviceState", "liveLocationKalman",
     "pandaState", "carParams", "driverState", "driverMonitoringState", "sensorEvents", "carState", "ubloxGnss", "gpsLocationExternal", "liveParameters", "lateralPlan",
@@ -444,14 +391,9 @@ QUIState::QUIState(QObject *parent) : QObject(parent) {
   ui_state.fb_w = vwp_w;
   ui_state.fb_h = vwp_h;
   ui_state.scene.started = false;
-  ui_state.status = STATUS_OFFROAD;
   ui_state.last_frame = nullptr;
-  ui_state.wide_camera = false;
+  ui_state.wide_camera = Hardware::TICI() ? Params().getBool("EnableWideCamera") : false;
   ui_state.sidebar_view = false;
-
-#ifdef QCOM2
-  ui_state.wide_camera = Params().getBool("EnableWideCamera");
-#endif
 
   ui_state.vipc_client_rear = new VisionIpcClient("camerad", ui_state.wide_camera ? VISION_STREAM_RGB_WIDE : VISION_STREAM_RGB_BACK, true);
   ui_state.vipc_client_front = new VisionIpcClient("camerad", VISION_STREAM_RGB_FRONT, true);
@@ -468,7 +410,6 @@ void QUIState::update() {
   update_sockets(&ui_state);
   update_state(&ui_state);
   update_status(&ui_state);
-  update_alert(&ui_state);
   update_vision(&ui_state);
   dashcam(&ui_state);
 
@@ -480,10 +421,6 @@ void QUIState::update() {
     // This puts visionIPC in charge of update frequency, reducing video latency
     timer->start(ui_state.scene.started ? 0 : 1000 / UI_FREQ);
   }
-
-  // scale volume with speed
-  QUIState::ui_state.sound->volume = util::map_val(ui_state.scene.car_state.getVEgo(), 0.f, 20.f,
-                                                   Hardware::MIN_VOLUME, Hardware::MAX_VOLUME);
 
   watchdog_kick();
   emit uiUpdate(ui_state);
@@ -506,6 +443,8 @@ void Device::setAwake(bool on, bool reset) {
   UIScene  &scene = QUIState::ui_state.scene;
   if (on != awake) {
     awake = on;
+
+    // atom
     if( scene.ignition || !scene.scr.autoScreenOff )
     {
       Hardware::set_display_power(awake);
@@ -523,18 +462,15 @@ void Device::setAwake(bool on, bool reset) {
 
 void Device::updateBrightness(const UIState &s) {
   float clipped_brightness = std::min(100.0f, (s.scene.light_sensor * brightness_m) + brightness_b);
-
-#ifdef QCOM2
-  if (!s.scene.started) {
+  if (Hardware::TICI() && !s.scene.started) {
     clipped_brightness = BACKLIGHT_OFFROAD;
   }
-#endif
 
   int brightness = brightness_filter.update(clipped_brightness);
   if (!awake) {
     brightness = 0;
   }
-  else if( s.scene.scr.brightness )
+  else if( s.scene.scr.brightness )  // atom
   {
     brightness = 255 * (s.scene.scr.brightness * 0.002);
   }
@@ -590,7 +526,7 @@ void Device::ScreenAwake()
   }
 
   int  cur_key = s.scene.scr.awake;
-  if (draw_alerts && s.scene.alert_size != cereal::ControlsState::AlertSize::NONE) 
+  if (draw_alerts && s.scene.controls_state.getAlertSize() != cereal::ControlsState::AlertSize::NONE) 
   {
       cur_key += 1;
   }

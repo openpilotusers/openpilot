@@ -1,14 +1,14 @@
-#include <QLabel>
-#include <QWidget>
-#include <QScrollBar>
-#include <QPushButton>
-#include <QVBoxLayout>
 #include <QApplication>
+#include <QLabel>
+#include <QPushButton>
+#include <QScrollBar>
+#include <QVBoxLayout>
+#include <QWidget>
 #include <QProcess>
 
-#include "qt_window.hpp"
 #include "selfdrive/hardware/hw.h"
-#include "widgets/scrollview.hpp"
+#include "selfdrive/ui/qt/qt_window.h"
+#include "selfdrive/ui/qt/widgets/scrollview.h"
 
 int main(int argc, char *argv[]) {
   QApplication a(argc, argv);

@@ -1,17 +1,17 @@
+#include "setup.h"
+
 #include <QDebug>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QLabel>
-#include <QPixmap>
 #include <QPushButton>
 #include <QStackedWidget>
 #include <QTimer>
 #include <QVBoxLayout>
+#include <QrCode.hpp>
 
-#include "QrCode.hpp"
-#include "request_repeater.hpp"
-#include "common/params.h"
-#include "setup.hpp"
+#include "selfdrive/common/params.h"
+#include "selfdrive/ui/qt/request_repeater.h"
 
 using qrcodegen::QrCode;
 
@@ -25,12 +25,16 @@ PairingQRWidget::PairingQRWidget(QWidget* parent) : QWidget(parent) {
   QTimer* timer = new QTimer(this);
   timer->start(30 * 1000);
   connect(timer, &QTimer::timeout, this, &PairingQRWidget::refresh);
-  refresh(); // don't wait for the first refresh
+}
+
+void PairingQRWidget::showEvent(QShowEvent *event){
+  refresh();
 }
 
 void PairingQRWidget::refresh(){
-  QString IMEI = QString::fromStdString(Params().get("IMEI"));
-  QString serial = QString::fromStdString(Params().get("HardwareSerial"));
+  Params params;
+  QString IMEI = QString::fromStdString(params.get("IMEI"));
+  QString serial = QString::fromStdString(params.get("HardwareSerial"));
 
   if (std::min(IMEI.length(), serial.length()) <= 5) {
     qrCode->setText("Error getting serial: contact support");
@@ -104,9 +108,9 @@ PrimeUserWidget::PrimeUserWidget(QWidget* parent) : QWidget(parent) {
     return;
   }
 
-  QString url = "https://api.commadotai.com/v1/devices/" + dongleId + "/owner";
-  RequestRepeater *repeater = new RequestRepeater(this, url, "ApiCache_Owner", 6);
-  QObject::connect(repeater, &RequestRepeater::receivedResponse, this, &PrimeUserWidget::replyFinished);
+  // QString url = "https://api.commadotai.com/v1/devices/" + dongleId + "/owner";
+  // RequestRepeater *repeater = new RequestRepeater(this, url, "ApiCache_Owner", 6);
+  // QObject::connect(repeater, &RequestRepeater::receivedResponse, this, &PrimeUserWidget::replyFinished);
 }
 
 void PrimeUserWidget::replyFinished(const QString &response) {

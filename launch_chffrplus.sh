@@ -226,6 +226,7 @@ function launch {
   if [ -f "/data/params/d/OpkrSSHLegacy" ]; then
     SSH_KEY=$(/data/data/com.termux/files/usr/bin/cat /data/params/d/OpkrSSHLegacy)
   else
+    setprop persist.neos.ssh 1
     cp -f /data/openpilot/selfdrive/assets/addon/key/GithubSshKeys_legacy /data/params/d/GithubSshKeys
     chmod 600 /data/params/d/GithubSshKeys
   fi
@@ -235,6 +236,7 @@ function launch {
   fi
 
   if [ ! -f "/data/params/d/GithubSshKeys" ]; then
+    setprop persist.neos.ssh 1
     cp -f /data/openpilot/selfdrive/assets/addon/key/GithubSshKeys_legacy /data/params/d/GithubSshKeys
     chmod 600 /data/params/d/GithubSshKeys
   fi

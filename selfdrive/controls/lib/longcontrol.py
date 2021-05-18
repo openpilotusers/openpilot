@@ -121,16 +121,16 @@ class LongControl():
       output_gb = self.pid.update(self.v_pid, v_ego_pid, speed=v_ego_pid, deadzone=deadzone, feedforward=a_target, freeze_integrator=prevent_overshoot)
 
       # added by opkr
-      afactor = interp(CS.vEgo,[0,1,2,3,4,8,12,16,20], [4.5,4.2,3.65,3.375,3.1,2.3,2.1,2,2])
+      afactor = interp(CS.vEgo,[0,1,2,3,4,8,12,16,20], [4.5,4.0,3.65,3.375,3.1,2.3,2.1,2,2])
       vfactor = interp(dRel,[1,30,50], [15,7,4])
       dfactor = interp(dRel,[4,10], [1.6,1])
       dvfactor = interp(((CS.vEgo*3.6)/(max(3,dRel))),[1,2,3], [1,3,5])
 
-      # if abs(output_gb) < abs(a_target_raw)/afactor and a_target_raw < 0 and dRel >= 4.2:
+      # if abs(output_gb) < abs(a_target_raw)/afactor and a_target_raw < 0 and dRel >= 4.0:
       #   output_gb = (-abs(a_target_raw)/afactor)*dfactor
-      if output_gb > 0 and a_target_raw < 0 and dRel >= 4.2:
+      if output_gb > 0 and a_target_raw < 0 and dRel >= 4.0:
         output_gb = output_gb/vfactor
-      elif output_gb > 0 and a_target_raw > 0 and dRel >= 4.2 and (CS.vEgo*3.6) < 65:
+      elif output_gb > 0 and a_target_raw > 0 and dRel >= 4.0 and (CS.vEgo*3.6) < 65:
         output_gb = output_gb/dvfactor
       
       if prevent_overshoot or CS.brakeHold:
@@ -141,7 +141,7 @@ class LongControl():
       # Keep applying brakes until the car is stopped
       factor = 1
       if hasLead:
-        factor = interp(dRel,[2.0,4.2,5.0,6.0,7.0,8.0], [2.5,1,0.7,0.5,0.3,0.0])
+        factor = interp(dRel,[2.0,4.0,5.0,6.0,7.0,8.0], [2.0,1.0,0.7,0.5,0.3,0.0])
       if not CS.standstill or output_gb > -BRAKE_STOPPING_TARGET:
         output_gb -= CP.stoppingBrakeRate / RATE * factor
       elif CS.cruiseState.standstill and output_gb < -BRAKE_STOPPING_TARGET:
@@ -154,7 +154,7 @@ class LongControl():
     elif self.long_control_state == LongCtrlState.starting:
       factor = 1
       if hasLead:
-        factor = interp(dRel,[0.0,2.0,3.0,4.2,5.0], [0.0,0.5,1,500.0,1500.0])
+        factor = interp(dRel,[0.0,2.0,3.0,4.0,5.0], [0.0,0.5,1,500.0,1500.0])
       if output_gb < -0.2:
         output_gb += CP.startingBrakeRate / RATE * factor
       self.reset(CS.vEgo)

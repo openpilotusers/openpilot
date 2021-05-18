@@ -37,31 +37,31 @@ class CarInterface(CarInterfaceBase):
 
 
     params = Params()
-    PidKp = float(int(params.get("PidKp")) * 0.01)
-    PidKi = float(int(params.get("PidKi")) * 0.001)
-    PidKd = float(int(params.get("PidKd")) * 0.01)
-    PidKf = float(int(params.get("PidKf")) * 0.00001)
-    InnerLoopGain = float(int(params.get("InnerLoopGain")) * 0.1)
-    OuterLoopGain = float(int(params.get("OuterLoopGain")) * 0.1)
-    TimeConstant = float(int(params.get("TimeConstant")) * 0.1)
-    ActuatorEffectiveness = float(int(params.get("ActuatorEffectiveness")) * 0.1)
-    Scale = float(int(params.get("Scale")) * 1.0)
-    LqrKi = float(int(params.get("LqrKi")) * 0.001)
-    DcGain = float(int(params.get("DcGain")) * 0.0001)
-    SteerMaxV = float(int(params.get("SteerMaxvAdj")) * 0.1)
+    PidKp = float(int(params.get("PidKp", encoding="utf8")) * 0.01)
+    PidKi = float(int(params.get("PidKi", encoding="utf8")) * 0.001)
+    PidKd = float(int(params.get("PidKd", encoding="utf8")) * 0.01)
+    PidKf = float(int(params.get("PidKf", encoding="utf8")) * 0.00001)
+    InnerLoopGain = float(int(params.get("InnerLoopGain", encoding="utf8")) * 0.1)
+    OuterLoopGain = float(int(params.get("OuterLoopGain", encoding="utf8")) * 0.1)
+    TimeConstant = float(int(params.get("TimeConstant", encoding="utf8")) * 0.1)
+    ActuatorEffectiveness = float(int(params.get("ActuatorEffectiveness", encoding="utf8")) * 0.1)
+    Scale = float(int(params.get("Scale", encoding="utf8")) * 1.0)
+    LqrKi = float(int(params.get("LqrKi", encoding="utf8")) * 0.001)
+    DcGain = float(int(params.get("DcGain", encoding="utf8")) * 0.0001)
+    SteerMaxV = float(int(params.get("SteerMaxvAdj", encoding="utf8")) * 0.1)
 
     # Most Hyundai car ports are community features for now
     ret.communityFeature = False
     
     ret.startAccel = 1.0
 
-    tire_stiffness_factor = float(int(params.get("TireStiffnessFactorAdj")) * 0.01)
-    ret.steerActuatorDelay = float(int(params.get("SteerActuatorDelayAdj")) * 0.01)
-    ret.steerRateCost = float(int(params.get("SteerRateCostAdj")) * 0.01)
-    ret.steerLimitTimer = float(int(params.get("SteerLimitTimerAdj")) * 0.01)
-    ret.steerRatio = float(int(params.get("SteerRatioAdj")) * 0.1)
+    tire_stiffness_factor = float(int(params.get("TireStiffnessFactorAdj", encoding="utf8")) * 0.01)
+    ret.steerActuatorDelay = float(int(params.get("SteerActuatorDelayAdj", encoding="utf8")) * 0.01)
+    ret.steerRateCost = float(int(params.get("SteerRateCostAdj", encoding="utf8")) * 0.01)
+    ret.steerLimitTimer = float(int(params.get("SteerLimitTimerAdj", encoding="utf8")) * 0.01)
+    ret.steerRatio = float(int(params.get("SteerRatioAdj", encoding="utf8")) * 0.1)
 
-    if int(params.get("LateralControlMethod")) == 0:
+    if int(params.get("LateralControlMethod", encoding="utf8")) == 0:
       ret.lateralTuning.pid.kf = PidKf
       ret.lateralTuning.pid.kpBP = [0., 9.]
       ret.lateralTuning.pid.kpV = [0.1, PidKp]
@@ -70,7 +70,7 @@ class CarInterface(CarInterfaceBase):
       ret.lateralTuning.pid.kdBP = [0.]
       ret.lateralTuning.pid.kdV = [PidKd]
       ret.lateralTuning.pid.newKfTuned = True if params.get_bool("ShaneFeedForward") else False # Shane's feedforward
-    elif int(params.get("LateralControlMethod")) == 1:
+    elif int(params.get("LateralControlMethod", encoding="utf8")) == 1:
       ret.lateralTuning.init('indi')
       ret.lateralTuning.indi.innerLoopGainBP = [0., 9.]
       ret.lateralTuning.indi.innerLoopGainV = [3.0, InnerLoopGain] # third tune. Highest value that still gives smooth control. Effects turning into curves.
@@ -100,7 +100,7 @@ class CarInterface(CarInterfaceBase):
         # Too high: twitchy hyper lane centering, oversteering
         # Too low: sloppy, all over lane
         # Just right: crisp lane centering
-    elif int(params.get("LateralControlMethod")) == 2:
+    elif int(params.get("LateralControlMethod", encoding="utf8")) == 2:
       ret.lateralTuning.init('lqr')
       ret.lateralTuning.lqr.scale = Scale
       ret.lateralTuning.lqr.ki = LqrKi
@@ -217,17 +217,19 @@ class CarInterface(CarInterfaceBase):
     ret.gasMaxBP = [0.]    # m/s
     ret.gasMaxV = [1.]    # max gas allowed
     ret.brakeMaxBP = [0., 4., 8.]  # m/s
-    ret.brakeMaxV = [0.7, 1.0, 1.3]   # max brake allowed
+    ret.brakeMaxV = [0.7, 1.1, 2.5]   # max brake allowed
 
-    ret.longitudinalTuning.kpBP = [0., 4., 35.]
-    ret.longitudinalTuning.kpV = [1.5, 1., 0.5]
-    ret.longitudinalTuning.kiBP = [0., 4., 35.]
-    ret.longitudinalTuning.kiV = [0.2, 0.13, 0.07]
+    ret.longitudinalTuning.kpBP = [0., 4., 16., 30.]
+    ret.longitudinalTuning.kpV = [1.5, 1.0, 0.65, 0.3]
+    ret.longitudinalTuning.kiBP = [0., 4., 16., 30.]
+    ret.longitudinalTuning.kiV = [0.2, 0.15, 0.11, 0.06]
 
     ret.longitudinalTuning.deadzoneBP = [0.]
-    ret.longitudinalTuning.deadzoneV = [0.]
-    ret.longitudinalTuning.kdBP = [0., 16., 35.]
-    ret.longitudinalTuning.kdV = [0.08, 1.215, 2.51]
+    ret.longitudinalTuning.deadzoneV = [0.01]
+    #ret.longitudinalTuning.kdBP = [0.]
+    #ret.longitudinalTuning.kdV = [0.]
+    ret.longitudinalTuning.kdBP = [0., 4., 16., 30.]
+    ret.longitudinalTuning.kdV = [0.05, 0.25, 0.5, 1.0]
 
     ret.enableCamera = True
     ret.enableBsm = 0x58b in fingerprint[0]
