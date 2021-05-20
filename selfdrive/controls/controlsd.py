@@ -260,9 +260,9 @@ class Controls:
       self.events.add(EventName.radarFault)
     elif not self.sm.all_alive_and_valid() and self.sm['pandaState'].pandaType != PandaType.whitePanda and not self.commIssue_ignored:
       self.delayed_comm_issue_timer += 1
-      if self.delayed_comm_issue_timer > 200 and not Params().get_bool("OpkrMapEnable"):
+      if self.delayed_comm_issue_timer > 150 and not Params().get_bool("OpkrMapEnable"):
         self.events.add(EventName.commIssue)
-      elif self.delayed_comm_issue_timer > 600 and Params().get_bool("OpkrMapEnable"):
+      elif self.delayed_comm_issue_timer > 300 and Params().get_bool("OpkrMapEnable"):
         self.events.add(EventName.commIssue)
       if not self.logged_comm_issue:
         cloudlog.error(f"commIssue - valid: {self.sm.valid} - alive: {self.sm.alive}")

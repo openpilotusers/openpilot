@@ -115,11 +115,15 @@ def create_scc11(packer, frame, enabled, set_speed, lead_visible, scc_live, lead
 
   return packer.make_can_msg("SCC11", 0, values)
 
-def create_scc12(packer, apply_accel, enabled, scc_live, gaspressed, brakepressed, aebcmdact, scc12):
+def create_scc12(packer, apply_accel, enabled, scc_live, gaspressed, brakepressed, aebcmdact, car_fingerprint, speed, scc12):
   values = scc12
 
   if not aebcmdact:
-    if enabled and not brakepressed:
+    if enabled and car_fingerprint in [CAR.NIRO_HEV] and speed <= 10:
+      values["ACCMode"] = 2 if gaspressed and (apply_accel > -0.2) else 1
+      values["aReqRaw"] = apply_accel
+      values["aReqValue"] = apply_accel
+    elif enabled and not brakepressed:
       values["ACCMode"] = 2 if gaspressed and (apply_accel > -0.2) else 1
       values["aReqRaw"] = apply_accel
       values["aReqValue"] = apply_accel
@@ -129,7 +133,7 @@ def create_scc12(packer, apply_accel, enabled, scc_live, gaspressed, brakepresse
       values["aReqValue"] = 0
     values["CR_VSM_ChkSum"] = 0
   if not scc_live:
-    values["ACCMode"] = 1  if enabled else 0 # 2 if gas padel pressed
+    values["ACCMode"] = 1 if enabled else 0 # 2 if gas padel pressed
     dat = packer.make_can_msg("SCC12", 0, values)[2]
     values["CR_VSM_ChkSum"] = 16 - sum([sum(divmod(i, 16)) for i in dat]) % 16
   return packer.make_can_msg("SCC12", 0, values)

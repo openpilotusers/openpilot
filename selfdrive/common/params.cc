@@ -303,7 +303,6 @@ std::unordered_map<std::string, uint32_t> keys = {
     {"OpkrMonitorEyesThreshold", PERSISTENT},
     {"OpkrMonitorNormalEyesThreshold", PERSISTENT},
     {"OpkrMonitorBlinkThreshold", PERSISTENT},
-    {"OpenpilotLongitudinalControl", PERSISTENT},
     {"MadModeEnabled", PERSISTENT},
     {"ModelLongEnabled", PERSISTENT},
     {"OpkrFanSpeedGain", PERSISTENT},

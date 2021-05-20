@@ -220,9 +220,9 @@ class CarInterface(CarInterfaceBase):
     ret.brakeMaxV = [0.7, 1.1, 2.5]   # max brake allowed
 
     ret.longitudinalTuning.kpBP = [0., 4., 16., 30.]
-    ret.longitudinalTuning.kpV = [1.5, 1.0, 0.65, 0.3]
+    ret.longitudinalTuning.kpV = [1.5, 1.0, 0.64, 0.3]
     ret.longitudinalTuning.kiBP = [0., 4., 16., 30.]
-    ret.longitudinalTuning.kiV = [0.2, 0.15, 0.11, 0.06]
+    ret.longitudinalTuning.kiV = [0.2, 0.14, 0.1, 0.06]
 
     ret.longitudinalTuning.deadzoneBP = [0.]
     ret.longitudinalTuning.deadzoneV = [0.01]
@@ -253,7 +253,7 @@ class CarInterface(CarInterfaceBase):
     ret.emsAvailable = True if 608 and 809 in fingerprint[0] else False
 
     ret.radarOffCan = ret.sccBus == -1
-    ret.openpilotLongitudinalControl = params.get_bool("OpenpilotLongitudinalControl")
+    ret.openpilotLongitudinalControl = ret.sccBus == 2
     
     # enableCruise is true
     ret.enableCruise = not ret.radarOffCan

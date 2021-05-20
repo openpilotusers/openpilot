@@ -99,11 +99,6 @@ TogglesPanel::TogglesPanel(QWidget *parent) : QWidget(parent) {
                                   "주행로그를 콤마서버로 전송합니다. 판다 세이프티 코드 및 모니터링 수치를 수정한 경우는 활성화하지 마십시오. 기기가 콤마 네트워크로부터 차단되며 standalone상태로만 동작됩니다.",
                                   "../assets/offroad/icon_shell.png",
                                   this));
-  toggles.append(new ParamControl("OpenpilotLongitudinalControl",
-                                  "오픈파일럿 롱컨트롤 사용",
-                                  "스톡+비전 기반의 롱컨트롤을 활성화 합니다. 관련 작업이 완료된 경우에만 활성화 하십시오.",
-                                  "../assets/offroad/icon_shell.png",
-                                  this));
   toggles.append(new ParamControl("MadModeEnabled",
                                   "MainSW 오픈파일럿 ON/OFF",
                                   "크루즈 MainSW를 이용하여 오파를 활성화 합니다.",

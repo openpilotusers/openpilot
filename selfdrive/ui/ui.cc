@@ -356,7 +356,7 @@ static void update_status(UIState *s) {
       s->nDebugUi2 = Params().getBool("DebugUi2");
       s->scene.forceGearD = Params().getBool("JustDoGearD");
       s->nOpkrBlindSpotDetect = Params().getBool("OpkrBlindSpotDetect");
-      s->scene.model_long = Params().getBool("OpenpilotLongitudinalControl");
+      s->scene.model_long = s->scene.longitudinal_control;
       s->scene.laneless_mode = std::stoi(Params().get("LanelessMode"));
       s->scene.recording_count = std::stoi(Params().get("RecordingCount"));
       s->scene.recording_quality = std::stoi(Params().get("RecordingQuality"));

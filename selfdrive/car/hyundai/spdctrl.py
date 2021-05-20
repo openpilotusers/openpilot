@@ -146,6 +146,10 @@ class Spdctrl(SpdController):
                 self.seq_step_debug = "기준내,-1"
                 lead_wait_cmd, lead_set_speed = self.get_tm_speed(CS, 35, -1)
                 self.cut_in = False
+            elif lead_objspd > 3 and int(CS.clu_Vanz) <= int(CS.VSetDis):
+                self.seq_step_debug = "기준내,앞차가속"
+                lead_wait_cmd, lead_set_speed = self.get_tm_speed(CS, 60, 1)
+                self.cut_in = False
             elif lead_objspd >= 0 and int(CS.clu_Vanz) <= int(CS.VSetDis):
                 self.seq_step_debug = "기준내>=0,-1"
                 lead_wait_cmd, lead_set_speed = self.get_tm_speed(CS, 290, -1)

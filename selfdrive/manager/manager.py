@@ -128,7 +128,6 @@ def manager_init():
     ("OpkrMonitorNormalEyesThreshold", "50"),
     ("OpkrMonitorBlinkThreshold", "50"),
     ("MadModeEnabled", "1"),
-    ("OpenpilotLongitudinalControl", "0"),
     ("OpkrFanSpeedGain", "0"),
   ]
 

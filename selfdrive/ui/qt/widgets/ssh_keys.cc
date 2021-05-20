@@ -751,8 +751,8 @@ FanSpeedGain::FanSpeedGain() : AbstractControl("팬속도 조절 Gain", "팬속�
     auto str = QString::fromStdString(params.get("OpkrFanSpeedGain"));
     int value = str.toInt();
     value = value + 16384;
-    if (value >= 49152 ) {
-      value = 49152;
+    if (value >= 32768 ) {
+      value = 32768;
     }
     QString values = QString::number(value);
     params.put("OpkrFanSpeedGain", values.toStdString());
