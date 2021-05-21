@@ -25,7 +25,7 @@ AWARENESS_DECEL = -0.2     # car smoothly decel at .2m/s^2 when user is distract
 # lookup tables VS speed to determine min and max accels in cruise
 # make sure these accelerations are smaller than mpc limits
 #_A_CRUISE_MIN_V_FOLLOWING = [-3.5, -3.5, -3.5, -2.5, -1.5]
-_A_CRUISE_MIN_V_FOLLOWING = [-2.5, -2.25, -1.75, -1.25, -0.5]
+_A_CRUISE_MIN_V_FOLLOWING = [-2.5, -2.3, -1.8, -1.2, -0.5]
 _A_CRUISE_MIN_V = [-1.0, -.8, -.67, -.5, -.30]
 _A_CRUISE_MIN_BP = [  0.,  5.,  10., 20.,  40.]
 

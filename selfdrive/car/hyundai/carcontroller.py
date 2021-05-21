@@ -528,11 +528,11 @@ class CarController():
           else:
             stock_weight = 0.
           apply_accel = apply_accel * (1. - stock_weight) + aReqValue * stock_weight
-        can_sends.append(create_scc11(self.packer, frame, enabled, set_speed, lead_visible, self.scc_live, lead_dist, lead_vrel, lead_yrel, self.car_fingerprint, CS.clu_Vanz, CS.scc11))
+        can_sends.append(create_scc11(self.packer, frame, set_speed, lead_visible, self.scc_live, lead_dist, lead_vrel, lead_yrel, CS.scc11))
         if CS.brake_check or CS.cancel_check:
-          can_sends.append(create_scc12(self.packer, apply_accel, enabled, self.scc_live, CS.out.gasPressed, 1, CS.out.stockAeb, self.car_fingerprint, CS.clu_Vanz, CS.scc12))
+          can_sends.append(create_scc12(self.packer, apply_accel, enabled, self.scc_live, CS.out.gasPressed, 1, CS.out.stockAeb, CS.scc12))
         else:
-          can_sends.append(create_scc12(self.packer, apply_accel, enabled, self.scc_live, CS.out.gasPressed, CS.out.brakePressed, CS.out.stockAeb, self.car_fingerprint, CS.clu_Vanz, CS.scc12))
+          can_sends.append(create_scc12(self.packer, apply_accel, enabled, self.scc_live, CS.out.gasPressed, CS.out.brakePressed, CS.out.stockAeb, CS.scc12))
         can_sends.append(create_scc14(self.packer, enabled, CS.scc14, CS.out.stockAeb, lead_visible, lead_dist))
         if CS.CP.fcaBus == -1:
           can_sends.append(create_fca11(self.packer, CS.fca11, self.fca11alivecnt, self.fca11supcnt))
