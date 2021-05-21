@@ -54,8 +54,9 @@ class RadarInterface(RadarInterfaceBase):
     ret.errors = errors
 
     valid = cpt["SCC11"]['ACC_ObjStatus']
-    if valid:
-      for ii in range(2):
+
+    for ii in range(1):
+      if valid:
         if ii not in self.pts:
           self.pts[ii] = car.RadarData.RadarPoint.new_message()
           self.pts[ii].trackId = self.track_id
@@ -66,6 +67,9 @@ class RadarInterface(RadarInterfaceBase):
         self.pts[ii].aRel = float('nan')
         self.pts[ii].yvRel = float('nan')
         self.pts[ii].measured = True
+      else:
+        if ii in self.pts:
+          del self.pts[ii]
 
     ret.points = list(self.pts.values())
     return ret
