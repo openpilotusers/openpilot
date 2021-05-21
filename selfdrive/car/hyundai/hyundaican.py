@@ -103,7 +103,7 @@ def create_lfahda_mfc(packer, frame, enabled, hda_set_speed=0):
 def create_scc11(packer, frame, enabled, set_speed, lead_visible, scc_live, lead_dist, lead_vrel, lead_yrel, car_fingerprint, speed, scc11):
   values = scc11
   values["AliveCounterACC"] = frame // 2 % 0x10
-  if car_fingerprint in [CAR.NIRO_HEV] and speed <= 10:
+  if enabled and car_fingerprint in [CAR.NIRO_HEV] and speed <= 10:
     values["MainMode_ACC"] = 1
     values["VSetDis"] = 30
     values["ObjValid"] = lead_visible
@@ -125,13 +125,12 @@ def create_scc11(packer, frame, enabled, set_speed, lead_visible, scc_live, lead
 
 def create_scc12(packer, apply_accel, enabled, scc_live, gaspressed, brakepressed, aebcmdact, car_fingerprint, speed, scc12):
   values = scc12
-
+  if enabled and car_fingerprint in [CAR.NIRO_HEV] and speed <= 10:
+    values["ACCMode"] = 2 if gaspressed and (apply_accel > -0.2) else 1
+    values["aReqRaw"] = apply_accel
+    values["aReqValue"] = apply_accel
   if not aebcmdact:
-    if enabled and car_fingerprint in [CAR.NIRO_HEV] and speed <= 10:
-      values["ACCMode"] = 2 if gaspressed and (apply_accel > -0.2) else 1
-      values["aReqRaw"] = apply_accel
-      values["aReqValue"] = apply_accel
-    elif enabled and not brakepressed:
+    if enabled and not brakepressed:
       values["ACCMode"] = 2 if gaspressed and (apply_accel > -0.2) else 1
       values["aReqRaw"] = apply_accel
       values["aReqValue"] = apply_accel
