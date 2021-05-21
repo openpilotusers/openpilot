@@ -522,9 +522,9 @@ class CarController():
         aReqValue = CS.scc12["aReqValue"]
         if 0 < CS.out.radarDistance <= 149:
           if aReqValue > 0.:
-            stock_weight = interp(CS.out.radarDistance, [4., 30.], [1., 0.])
+            stock_weight = interp(CS.out.radarDistance, [3., 25.], [0.85, 0.])
           elif aReqValue < 0.:
-            stock_weight = interp(CS.out.radarDistance, [3.5, 25.], [1., 0.])
+            stock_weight = interp(CS.out.radarDistance, [3., 25.], [1., 0.])
           else:
             stock_weight = 0.
           apply_accel = apply_accel * (1. - stock_weight) + aReqValue * stock_weight
