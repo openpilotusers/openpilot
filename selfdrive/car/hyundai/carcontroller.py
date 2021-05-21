@@ -528,7 +528,7 @@ class CarController():
           else:
             stock_weight = 0.
           apply_accel = apply_accel * (1. - stock_weight) + aReqValue * stock_weight
-        can_sends.append(create_scc11(self.packer, frame, enabled, set_speed, lead_visible, self.scc_live, lead_dist, lead_vrel, lead_yrel, CS.scc11))
+        can_sends.append(create_scc11(self.packer, frame, enabled, set_speed, lead_visible, self.scc_live, lead_dist, lead_vrel, lead_yrel, self.car_fingerprint, CS.clu_Vanz, CS.scc11))
         if CS.brake_check or CS.cancel_check:
           can_sends.append(create_scc12(self.packer, apply_accel, enabled, self.scc_live, CS.out.gasPressed, 1, CS.out.stockAeb, self.car_fingerprint, CS.clu_Vanz, CS.scc12))
         else:

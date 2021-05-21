@@ -100,10 +100,18 @@ def create_lfahda_mfc(packer, frame, enabled, hda_set_speed=0):
 
   return packer.make_can_msg("LFAHDA_MFC", 0, values)
 
-def create_scc11(packer, frame, enabled, set_speed, lead_visible, scc_live, lead_dist, lead_vrel, lead_yrel, scc11):
+def create_scc11(packer, frame, enabled, set_speed, lead_visible, scc_live, lead_dist, lead_vrel, lead_yrel, car_fingerprint, speed, scc11):
   values = scc11
   values["AliveCounterACC"] = frame // 2 % 0x10
-  if not scc_live:
+  if car_fingerprint in [CAR.NIRO_HEV] and speed <= 10:
+    values["MainMode_ACC"] = 1
+    values["VSetDis"] = 30
+    values["ObjValid"] = lead_visible
+    values["ACC_ObjStatus"] = lead_visible
+    values["ACC_ObjRelSpd"] = clip(lead_vrel if lead_visible else 0, -20., 20.)
+    values["ACC_ObjDist"] = clip(lead_dist if lead_visible else 204.6, 0., 204.6)
+    values["ACC_ObjLatPos"] = clip(-lead_yrel if lead_visible else 0, -170., 170.)
+  elif not scc_live:
     values["MainMode_ACC"] = 1
     values["VSetDis"] = set_speed
     values["ObjValid"] = lead_visible
