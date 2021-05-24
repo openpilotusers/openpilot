@@ -1,6 +1,7 @@
 from cereal import car, log
 from common.numpy_fast import clip, interp
 from selfdrive.controls.lib.pid import LongPIDController
+from selfdrive.car.hyundai.values import CAR
 from selfdrive.config import Conversions as CV
 from common.params import Params
 
@@ -55,7 +56,7 @@ def long_control_state_trans(active, long_control_state, v_ego, v_target, v_pid,
 
 
 class LongControl():
-  def __init__(self, CP, compute_gb):
+  def __init__(self, CP, compute_gb, candidate):
     self.long_control_state = LongCtrlState.off  # initialized to off
 
     self.pid = LongPIDController((CP.longitudinalTuning.kpBP, CP.longitudinalTuning.kpV),
@@ -67,6 +68,8 @@ class LongControl():
     self.v_pid = 0.0
     self.last_output_gb = 0.0
     self.long_stat = ""
+
+    self.candidate = candidate
 
   def reset(self, v_pid):
     """Reset PID controller and change setpoint"""
@@ -98,9 +101,12 @@ class LongControl():
 
     v_ego_pid = max(CS.vEgo, CP.minSpeedCan)  # Without this we get jumps, CAN bus reports 0 when speed < 0.3
 
-    if self.long_control_state == LongCtrlState.off or (CS.brakePressed or CS.gasPressed):
+    if (self.long_control_state == LongCtrlState.off or (CS.brakePressed or CS.gasPressed)) and self.candidate not in [CAR.NIRO_EV]:
       self.v_pid = v_ego_pid
       self.pid.reset()
+      output_gb = 0.
+    elif self.long_control_state == LongCtrlState.off or CS.gasPressed:
+      self.reset(v_ego_pid)
       output_gb = 0.
 
     # tracking objects and driving

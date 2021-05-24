@@ -100,10 +100,10 @@ def create_lfahda_mfc(packer, frame, enabled, hda_set_speed=0):
 
   return packer.make_can_msg("LFAHDA_MFC", 0, values)
 
-def create_scc11(packer, frame, set_speed, lead_visible, scc_live, lead_dist, lead_vrel, lead_yrel, scc11):
+def create_scc11(packer, frame, set_speed, lead_visible, scc_live, lead_dist, lead_vrel, lead_yrel, car_fingerprint, speed, scc11):
   values = scc11
   values["AliveCounterACC"] = frame // 2 % 0x10
-  if not scc_live:
+  if not scc_live or (car_fingerprint in [CAR.NIRO_HEV] and speed <= 10):
     values["MainMode_ACC"] = 1
     values["VSetDis"] = set_speed
     values["ObjValid"] = lead_visible
@@ -114,10 +114,14 @@ def create_scc11(packer, frame, set_speed, lead_visible, scc_live, lead_dist, le
 
   return packer.make_can_msg("SCC11", 0, values)
 
-def create_scc12(packer, apply_accel, enabled, scc_live, gaspressed, brakepressed, aebcmdact, scc12):
+def create_scc12(packer, apply_accel, enabled, scc_live, gaspressed, brakepressed, aebcmdact, car_fingerprint, speed, scc12):
   values = scc12
   if not aebcmdact:
-    if enabled and not brakepressed:
+    if enabled and car_fingerprint in [CAR.NIRO_EV]:
+      values["ACCMode"] = 2 if gaspressed and (apply_accel > -0.2) else 1
+      values["aReqRaw"] = apply_accel
+      values["aReqValue"] = apply_accel
+    elif enabled and not brakepressed or (car_fingerprint in [CAR.NIRO_HEV] and speed <= 10):
       values["ACCMode"] = 2 if gaspressed and (apply_accel > -0.2) else 1
       values["aReqRaw"] = apply_accel
       values["aReqValue"] = apply_accel
@@ -126,7 +130,7 @@ def create_scc12(packer, apply_accel, enabled, scc_live, gaspressed, brakepresse
       values["aReqRaw"] = 0
       values["aReqValue"] = 0
     values["CR_VSM_ChkSum"] = 0
-  if not scc_live:
+  if not scc_live or (car_fingerprint in [CAR.NIRO_HEV] and speed <= 10):
     values["ACCMode"] = 1 if enabled else 0 # 2 if gas padel pressed
     dat = packer.make_can_msg("SCC12", 0, values)[2]
     values["CR_VSM_ChkSum"] = 16 - sum([sum(divmod(i, 16)) for i in dat]) % 16
@@ -136,9 +140,23 @@ def create_scc13(packer, scc13):
   values = scc13
   return packer.make_can_msg("SCC13", 0, values)
 
-def create_scc14(packer, enabled, scc14, aebcmdact, lead_visible, lead_dist):
+def create_scc14(packer, enabled, scc14, aebcmdact, lead_visible, lead_dist, v_ego, standstill, car_fingerprint):
   values = scc14
-  if enabled and not aebcmdact:
+  if enabled and not aebcmdact and car_fingerprint in [CAR.NIRO_EV]:
+    if standstill:
+      values["JerkUpperLimit"] = 0.5
+      values["JerkLowerLimit"] = 10.
+      values["ComfortBandUpper"] = 0.
+      values["ComfortBandLower"] = 0.
+      if v_ego > 0.27:
+        values["ComfortBandUpper"] = 2.
+        values["ComfortBandLower"] = 0.
+    else:
+      values["JerkUpperLimit"] = 50.
+      values["JerkLowerLimit"] = 50.
+      values["ComfortBandUpper"] = 50.
+      values["ComfortBandLower"] = 50.
+  elif enabled and not aebcmdact:
     values["JerkUpperLimit"] = 12.7
     values["JerkLowerLimit"] = 12.7
     values["ComfortBandUpper"] = 0
