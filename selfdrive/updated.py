@@ -162,7 +162,7 @@ def init_overlay() -> None:
     else:
       cloudlog.info(".git directory changed, recreating overlay")
 
-  cloudlog.info("preparing new safe staging area")
+  #cloudlog.info("preparing new safe staging area")
 
   params = Params()
   params.put_bool("UpdateAvailable", False)
@@ -197,9 +197,10 @@ def init_overlay() -> None:
   else:
     run(mount_cmd)
 
-  git_diff = run(["git", "diff"], OVERLAY_MERGED, low_priority=True)
-  params.put("GitDiff", git_diff)
-  cloudlog.info(f"git diff output:\n{git_diff}")
+  #git_diff = run(["git", "diff"], OVERLAY_MERGED, low_priority=True)
+  params.put("GitDiff", "")
+  #params.put("GitDiff", git_diff)
+  #cloudlog.info(f"git diff output:\n{git_diff}")
 
 
 def finalize_update() -> None:
