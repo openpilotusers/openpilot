@@ -383,10 +383,10 @@ class CarState(CarStateBase):
       ("CR_FCA_Alive", "FCA11", 0),
       ("Supplemental_Counter", "FCA11", 0),
 
-      ("MainMode_ACC", "SCC11", 1),
+      ("MainMode_ACC", "SCC11", 0),
       ("SCCInfoDisplay", "SCC11", 0),
       ("AliveCounterACC", "SCC11", 0),
-      ("VSetDis", "SCC11", 30),
+      ("VSetDis", "SCC11", 0),
       ("ObjValid", "SCC11", 0),
       ("DriverAlertDisplay", "SCC11", 0),
       ("TauGapSet", "SCC11", 4),
@@ -604,10 +604,10 @@ class CarState(CarStateBase):
     ]
     if CP.sccBus == 2:
       signals += [
-        ("MainMode_ACC", "SCC11", 1),
+        ("MainMode_ACC", "SCC11", 0),
         ("SCCInfoDisplay", "SCC11", 0),
         ("AliveCounterACC", "SCC11", 0),
-        ("VSetDis", "SCC11", 30),
+        ("VSetDis", "SCC11", 0),
         ("ObjValid", "SCC11", 0),
         ("DriverAlertDisplay", "SCC11", 0),
         ("TauGapSet", "SCC11", 4),
