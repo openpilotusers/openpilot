@@ -47,6 +47,7 @@ class CarState(CarStateBase):
     self.safety_sign_check = 0
     self.safety_sign = 0
     self.safety_dist = 0
+    self.is_highway = False
 
   def update(self, cp, cp2, cp_cam):
     cp_mdps = cp2 if self.CP.mdpsBus == 1 else cp
@@ -182,13 +183,14 @@ class CarState(CarStateBase):
     # OPKR
     self.safety_dist = cp.vl["NAVI"]['OPKR_S_Dist']
     self.safety_sign_check = cp.vl["NAVI"]['OPKR_S_Sign']
+    self.is_highway = cp_scc.vl["SCC11"]["Navi_SCC_Camera_Act"] == 2.
     if self.safety_sign_check == 25.:
       self.safety_sign = 30.
     elif self.safety_sign_check == 9.:
       self.safety_sign = 50.
-    elif self.safety_sign_check == 17.:
+    elif self.safety_sign_check in [16., 17., 18.] and not self.is_highway:
       self.safety_sign = 60.
-    elif self.safety_sign_check in [16., 18.]:
+    elif self.safety_sign_check in [16., 18.] and self.is_highway:
       self.safety_sign = 100.
     else:
       self.safety_sign = 0.
