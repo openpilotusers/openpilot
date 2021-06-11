@@ -489,6 +489,7 @@ class CarState(CarStateBase):
 
       ("OPKR_S_Dist", "NAVI", 0),
       ("OPKR_S_Sign", "NAVI", 0),
+      ("OPKR_SBR_Dist", "NAVI", 0),
     ]
 
     checks = [
