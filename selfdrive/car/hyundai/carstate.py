@@ -46,7 +46,9 @@ class CarState(CarStateBase):
     self.cancel_check = False
     self.safety_sign_check = 0
     self.safety_sign = 0
+    self.safety_sign_last = 0
     self.safety_dist = 0
+    self.safety_block_remain_dist = 0
     self.is_highway = False
 
   def update(self, cp, cp2, cp_cam):
@@ -183,26 +185,39 @@ class CarState(CarStateBase):
     # OPKR
     self.safety_dist = cp.vl["NAVI"]['OPKR_S_Dist']
     self.safety_sign_check = cp.vl["NAVI"]['OPKR_S_Sign']
+    self.safety_block_remain_dist = cp.vl["NAVI"]['OPKR_SBR_Dist']
     self.is_highway = cp_scc.vl["SCC11"]["Navi_SCC_Camera_Act"] != 0.
     if self.safety_sign_check == 25.:
       self.safety_sign = 30.
+      self.safety_sign_last = self.safety_sign
     elif self.safety_sign_check in [9., 10.]:
       self.safety_sign = 50.
+      self.safety_sign_last = self.safety_sign
     elif self.safety_sign_check in [16., 17., 18.] and not self.is_highway:
       self.safety_sign = 60.
+      self.safety_sign_last = self.safety_sign
     elif self.safety_sign_check in [24.]:
       self.safety_sign = 70.
+      self.safety_sign_last = self.safety_sign
     elif self.safety_sign_check in [2.]:
       self.safety_sign = 80.
+      self.safety_sign_last = self.safety_sign
     elif self.safety_sign_check in [8.]:
       self.safety_sign = 90.
+      self.safety_sign_last = self.safety_sign
     elif self.safety_sign_check in [16., 18.] and self.is_highway:
       self.safety_sign = 100.
+      self.safety_sign_last = self.safety_sign
+    elif self.safety_block_remain_dist < 255.:
+      self.safety_sign = self.safety_sign_last
     else:
       self.safety_sign = 0.
     cam_distance_calc = interp(ret.vEgo*CV.MS_TO_KPH, [30,60,100,160], [3.65,5.4,5.9,6.9])
     consider_speed = interp((ret.vEgo*CV.MS_TO_KPH - self.safety_sign), [10, 30], [1, 1.25])
     if self.safety_sign > 29 and self.safety_dist < cam_distance_calc*consider_speed*ret.vEgo*CV.MS_TO_KPH:
+      ret.safetySign = self.safety_sign
+      ret.safetyDist = self.safety_dist
+    elif self.safety_sign > 29 and self.safety_block_remain_dist < 255.:
       ret.safetySign = self.safety_sign
       ret.safetyDist = self.safety_dist
     else:
