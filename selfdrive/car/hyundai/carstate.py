@@ -193,19 +193,19 @@ class CarState(CarStateBase):
     elif self.safety_sign_check in [1.] and not self.is_highway:
       self.safety_sign = 40.
       self.safety_sign_last = self.safety_sign
-    elif self.safety_sign_check in [9., 10.] and not self.is_highway::
+    elif self.safety_sign_check in [8., 9., 10.] and not self.is_highway::
       self.safety_sign = 50.
       self.safety_sign_last = self.safety_sign
     elif self.safety_sign_check in [16., 17., 18.] and not self.is_highway:
       self.safety_sign = 60.
       self.safety_sign_last = self.safety_sign
-    elif self.safety_sign_check in [24.]:
+    elif self.safety_sign_check in [24.] and not self.is_highway:
       self.safety_sign = 70.
       self.safety_sign_last = self.safety_sign
     elif self.safety_sign_check in [0., 1., 2.]:
       self.safety_sign = 80.
       self.safety_sign_last = self.safety_sign
-    elif self.safety_sign_check in [8.]:
+    elif self.safety_sign_check in [8., 10.] and self.is_highway:
       self.safety_sign = 90.
       self.safety_sign_last = self.safety_sign
     elif self.safety_sign_check in [16., 18.] and self.is_highway:
