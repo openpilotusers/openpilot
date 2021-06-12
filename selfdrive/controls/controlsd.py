@@ -317,7 +317,7 @@ class Controls:
       #    (not TICI or self.enable_lte_onroad):
       #    # Not show in first 1 km to allow for driving out of garage. This event shows after 5 minutes
       #    self.events.add(EventName.noGps)
-      if not self.sm.all_alive(self.camera_packets):
+      if not self.sm.all_alive(self.camera_packets) and CS.vEgo > 0.3:
         self.events.add(EventName.cameraMalfunction)
       if self.sm['modelV2'].frameDropPerc > 20:
         self.events.add(EventName.modeldLagging)
@@ -529,9 +529,8 @@ class Controls:
     a_acc_sol = long_plan.aStart + (dt / LON_MPC_STEP) * (long_plan.aTarget - long_plan.aStart)
     v_acc_sol = long_plan.vStart + dt * (a_acc_sol + long_plan.aStart) / 2.0
 
-    extras_loc = {'lead_one': self.sm['radarState'].leadOne, 'has_lead': long_plan.hasLead}
     # Gas/Brake PID loop
-    actuators.gas, actuators.brake = self.LoC.update(self.active and CS.cruiseState.speed > 1., CS, v_acc_sol, long_plan.vTargetFuture, long_plan.aTarget, a_acc_sol, self.CP, long_plan.hasLead, self.sm['radarState'], long_plan.longitudinalPlanSource, extras_loc)
+    actuators.gas, actuators.brake = self.LoC.update(self.active and CS.cruiseState.speed > 1., CS, v_acc_sol, long_plan.vTargetFuture, long_plan.aTarget, a_acc_sol, self.CP, long_plan.hasLead, self.sm['radarState'], long_plan.longitudinalPlanSource)
 
     # Steering PID loop and lateral MPC
     actuators.steer, actuators.steeringAngleDeg, lac_log = self.LaC.update(self.active, CS, self.CP, self.VM, params, lat_plan)
