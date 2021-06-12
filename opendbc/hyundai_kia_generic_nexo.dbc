@@ -1642,6 +1642,7 @@ BO_ 1042 ICM_412h: 8 ICM
 BO_ 1332 NAVI: 8 XXX
  SG_ OPKR_S_Dist : 15|10@0+ (1,0) [0|1023] "" XXX
  SG_ OPKR_S_Sign : 21|5@0+ (1,0) [0|3] "" XXX
+ SG_ OPKR_SBR_Dist : 47|8@0+ (1,0) [0|31] "" XXX
 
 VAL_ 909 CF_VSM_Warn 2 "FCW" 3 "AEB";
 VAL_ 1157 LFA_Icon_State 0 "no_wheel" 1 "white_wheel" 2 "green_wheel" 3 "green_wheel_blink";

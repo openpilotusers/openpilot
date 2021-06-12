@@ -187,8 +187,11 @@ class CarState(CarStateBase):
     self.safety_sign_check = cp.vl["NAVI"]['OPKR_S_Sign']
     self.safety_block_remain_dist = cp.vl["NAVI"]['OPKR_SBR_Dist']
     self.is_highway = cp_scc.vl["SCC11"]["Navi_SCC_Camera_Act"] != 0.
-    if self.safety_sign_check == 25.:
+    if self.safety_sign_check in [25.] and not self.is_highway:
       self.safety_sign = 30.
+      self.safety_sign_last = self.safety_sign
+    elif self.safety_sign_check in [1.] and not self.is_highway:
+      self.safety_sign = 40.
       self.safety_sign_last = self.safety_sign
     elif self.safety_sign_check in [9., 10.]:
       self.safety_sign = 50.
@@ -199,7 +202,7 @@ class CarState(CarStateBase):
     elif self.safety_sign_check in [24.]:
       self.safety_sign = 70.
       self.safety_sign_last = self.safety_sign
-    elif self.safety_sign_check in [2.]:
+    elif self.safety_sign_check in [0., 1., 2.]:
       self.safety_sign = 80.
       self.safety_sign_last = self.safety_sign
     elif self.safety_sign_check in [8.]:
@@ -207,6 +210,9 @@ class CarState(CarStateBase):
       self.safety_sign_last = self.safety_sign
     elif self.safety_sign_check in [16., 18.] and self.is_highway:
       self.safety_sign = 100.
+      self.safety_sign_last = self.safety_sign
+    elif self.safety_sign_check in [24., 26.] and self.is_highway:
+      self.safety_sign = 110.
       self.safety_sign_last = self.safety_sign
     elif self.safety_block_remain_dist < 255.:
       self.safety_sign = self.safety_sign_last
