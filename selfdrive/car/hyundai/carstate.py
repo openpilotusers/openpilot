@@ -218,7 +218,7 @@ class CarState(CarStateBase):
       self.safety_sign = self.safety_sign_last
     else:
       self.safety_sign = 0.
-    cam_distance_calc = interp(ret.vEgo*CV.MS_TO_KPH, [30,60,100,160], [3.65,5.4,5.9,6.9])
+    cam_distance_calc = interp(ret.vEgo*CV.MS_TO_KPH, [30,60,100,160], [3.6,5.35,5.8,6.8])
     consider_speed = interp((ret.vEgo*CV.MS_TO_KPH - self.safety_sign), [10, 30], [1, 1.25])
     if self.safety_sign > 29 and self.safety_dist < cam_distance_calc*consider_speed*ret.vEgo*CV.MS_TO_KPH:
       ret.safetySign = self.safety_sign
