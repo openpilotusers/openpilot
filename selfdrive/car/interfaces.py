@@ -110,19 +110,19 @@ class CarInterfaceBase():
       events.add(EventName.seatbeltNotLatched)
     if cs_out.gearShifter != GearShifter.drive and cs_out.gearShifter not in extra_gears and cs_out.cruiseState.enabled and cs_out.steeringAngleDeg < 90:
       self.user_disable_timer += 1
-      if self.user_disable_timer > 100:
+      if self.user_disable_timer > 50:
         events.add(EventName.wrongGear)
         self.user_disable = True
     elif cs_out.gearShifter != GearShifter.drive and cs_out.gearShifter not in extra_gears and cs_out.cruiseState.enabled and self.user_disable:
       self.user_disable_timer += 1
-      if self.user_disable_timer > 100:
+      if self.user_disable_timer > 50:
         events.add(EventName.wrongGear)
     else:
       self.user_disable_timer = 0
       self.user_disable = False
     if cs_out.gearShifter == GearShifter.reverse and self.user_disable:
       self.user_disable_timer += 1
-      if self.user_disable_timer > 100:
+      if self.user_disable_timer > 50:
         events.add(EventName.reverseGear)
     if not cs_out.cruiseState.available and cs_out.cruiseState.enabled:
       events.add(EventName.wrongCarMode)
