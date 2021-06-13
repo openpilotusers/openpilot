@@ -74,6 +74,7 @@ class LongControl():
 
     self.vRel_prev = 0
     self.decel_damping = 1.0
+    self.decel_damping2 = 1.0
     self.damping_timer = 0
 
   def reset(self, v_pid):
@@ -129,11 +130,11 @@ class LongControl():
       if self.vRel_prev != vRel and vRel < 0 and CS.vEgo > 16.7 and self.damping_timer == 0: # decel mitigation for a while
         if abs(vRel*3.6) - abs(self.vRel_prev*3.6) > 5:
           self.damping_timer = 25
-          decel_damping = interp(abs(vRel*3.6), [5, 20], [1, 0.1])
+          self.decel_damping2 = interp(abs(vRel*3.6), [5, 20], [1, 0.1])
         self.vRel_prev = vRel
       elif self.damping_timer > 0:
         self.damping_timer -= 1
-        self.decel_damping = interp(self.damping_timer, [0, 30], [1, decel_damping])
+        self.decel_damping = interp(self.damping_timer, [0, 30], [1, self.decel_damping2])
 
       output_gb = self.pid.update(self.v_pid, v_ego_pid, speed=v_ego_pid, deadzone=deadzone, feedforward=a_target, freeze_integrator=prevent_overshoot)
       output_gb *= self.decel_damping
