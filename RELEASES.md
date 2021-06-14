@@ -1,3 +1,8 @@
+Version 0.8.6 (2021-XX-XX)
+========================
+ * Hyundai Ioniq PHEV 2020 support thanks to YawWashout!
+ * Škoda Octavia RS 2016 support thanks to jyoung8607!
+
 Version 0.8.5 (2021-06-11)
 ========================
  * NEOS update: improved reliability and stability with better voltage regulator configuration

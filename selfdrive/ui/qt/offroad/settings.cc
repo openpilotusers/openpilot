@@ -1,4 +1,4 @@
-#include "settings.h"
+#include "selfdrive/ui/qt/offroad/settings.h"
 
 #include <cassert>
 #include <string>
@@ -7,6 +7,11 @@
 #ifndef QCOM
 #include "selfdrive/ui/qt/offroad/networking.h"
 #endif
+
+#ifdef ENABLE_MAPS
+#include "selfdrive/ui/qt/maps/map_settings.h"
+#endif
+
 #include "selfdrive/common/params.h"
 #include "selfdrive/common/util.h"
 #include "selfdrive/hardware/hw.h"
@@ -20,7 +25,7 @@
 #include "selfdrive/ui/qt/util.h"
 
 TogglesPanel::TogglesPanel(QWidget *parent) : QWidget(parent) {
-  QVBoxLayout *toggles_list = new QVBoxLayout();
+  QVBoxLayout *main_layout = new QVBoxLayout(this);
 
   QList<ParamControl*> toggles;
 
@@ -63,7 +68,7 @@ TogglesPanel::TogglesPanel(QWidget *parent) : QWidget(parent) {
                                                  this);
   toggles.append(record_toggle);
   toggles.append(new ParamControl("EndToEndToggle",
-                                   "차선 비활성화 모드 (알파)",
+                                   "\U0001f96c 차선 비활성화 모드 (알파) \U0001f96c",
                                    "이 모드에서 오픈파일럿은 차선을 따라 주행하지 않고 사람이 운전하는 것 처럼 주행합니다.",
                                    "../assets/offroad/icon_road.png",
                                    this));
@@ -109,26 +114,24 @@ TogglesPanel::TogglesPanel(QWidget *parent) : QWidget(parent) {
   bool record_lock = Params().getBool("RecordFrontLock");
   record_toggle->setEnabled(!record_lock);
 
-  for(ParamControl *toggle : toggles){
-    if(toggles_list->count() != 0){
-      toggles_list->addWidget(horizontal_line());
+  for(ParamControl *toggle : toggles) {
+    if(main_layout->count() != 0) {
+      main_layout->addWidget(horizontal_line());
     }
-    toggles_list->addWidget(toggle);
+    main_layout->addWidget(toggle);
   }
-
-  setLayout(toggles_list);
 }
 
 DevicePanel::DevicePanel(QWidget* parent) : QWidget(parent) {
-  QVBoxLayout *device_layout = new QVBoxLayout;
+  QVBoxLayout *main_layout = new QVBoxLayout(this);
   Params params = Params();
 
   QString dongle = QString::fromStdString(params.get("DongleId", false));
-  device_layout->addWidget(new LabelControl("Dongle ID", dongle));
-  device_layout->addWidget(horizontal_line());
+  main_layout->addWidget(new LabelControl("Dongle ID", dongle));
+  main_layout->addWidget(horizontal_line());
 
   QString serial = QString::fromStdString(params.get("HardwareSerial", false));
-  device_layout->addWidget(new LabelControl("Serial", serial));
+  main_layout->addWidget(new LabelControl("Serial", serial));
 
   // offroad-only buttons
   QList<ButtonControl*> offroad_btns;
@@ -192,20 +195,19 @@ DevicePanel::DevicePanel(QWidget* parent) : QWidget(parent) {
     }
   }, "", this));
 
-  QString brand = params.getBool("Passive") ? "대시캠" : "오픈파일럿";
-  offroad_btns.append(new ButtonControl(brand + " 제거", "제거", "", [=]() {
+  offroad_btns.append(new ButtonControl(getBrand() + " 제거", "제거", "", [=]() {
     if (ConfirmationDialog::confirm("제거하시겠습니까?", this)) {
       Params().putBool("DoUninstall", true);
     }
   }, "", this));
 
-  for(auto &btn : offroad_btns){
-    device_layout->addWidget(horizontal_line());
+  for(auto &btn : offroad_btns) {
+    main_layout->addWidget(horizontal_line());
     QObject::connect(parent, SIGNAL(offroadTransition(bool)), btn, SLOT(setEnabled(bool)));
-    device_layout->addWidget(btn);
+    main_layout->addWidget(btn);
   }
 
-  device_layout->addWidget(horizontal_line());
+  main_layout->addWidget(horizontal_line());
 
   // cal reset and param init buttons
   QHBoxLayout *cal_param_init_layout = new QHBoxLayout();
@@ -292,18 +294,17 @@ DevicePanel::DevicePanel(QWidget* parent) : QWidget(parent) {
     }
   });
 
-  device_layout->addLayout(cal_param_init_layout);
+  main_layout->addLayout(cal_param_init_layout);
 
-  device_layout->addWidget(horizontal_line());
+  main_layout->addWidget(horizontal_line());
 
-  device_layout->addLayout(presetone_layout);
-  device_layout->addLayout(presettwo_layout);
+  main_layout->addLayout(presetone_layout);
+  main_layout->addLayout(presettwo_layout);
 
-  device_layout->addWidget(horizontal_line());
+  main_layout->addWidget(horizontal_line());
 
-  device_layout->addLayout(power_layout);
+  main_layout->addLayout(power_layout);
 
-  setLayout(device_layout);
   setStyleSheet(R"(
     QPushButton {
       padding: 20;
@@ -314,18 +315,83 @@ DevicePanel::DevicePanel(QWidget* parent) : QWidget(parent) {
   )");
 }
 
-SoftwarePanel::SoftwarePanel(QWidget* parent) : QFrame(parent) {
+SoftwarePanel::SoftwarePanel(QWidget* parent) : QWidget(parent) {
+  gitBranchLbl = new LabelControl("Git Branch");
+  gitCommitLbl = new LabelControl("Git Commit");
+  osVersionLbl = new LabelControl("OS Version");
+  versionLbl = new LabelControl("Version", "", QString::fromStdString(params.get("ReleaseNotes")).trimmed());
+  lastUpdateLbl = new LabelControl("Last Update Check", "", "The last time openpilot successfully checked for an update. The updater only runs while the car is off.");
+  updateBtn = new ButtonControl("Check for Update", "", "", [=]() {
+    if (params.getBool("IsOffroad")) {
+      const QString paramsPath = QString::fromStdString(params.getParamsPath());
+      fs_watch->addPath(paramsPath + "/d/LastUpdateTime");
+      fs_watch->addPath(paramsPath + "/d/UpdateFailedCount");
+      updateBtn->setText("CHECKING");
+      updateBtn->setEnabled(false);
+    }
+    std::system("pkill -1 -f selfdrive.updated");
+  }, "", this);
+
   QVBoxLayout *main_layout = new QVBoxLayout(this);
-  setLayout(main_layout);
+  QWidget *widgets[] = {versionLbl, lastUpdateLbl, updateBtn, gitBranchLbl, gitCommitLbl, osVersionLbl};
+  for (int i = 0; i < std::size(widgets); ++i) {
+    main_layout->addWidget(widgets[i]);
+    if (i < std::size(widgets) - 1) {
+      main_layout->addWidget(horizontal_line());
+    }
+  }
+
+  main_layout->addWidget(horizontal_line());
+
+  main_layout->addWidget(new GitHash());
+  const char* gitpull = "/data/openpilot/gitpull.sh ''";
+  main_layout->addWidget(new ButtonControl("Git Pull", "실행", "리모트 Git에서 변경사항이 있으면 로컬에 반영 후 자동 재부팅 됩니다. 변경사항이 없으면 재부팅하지 않습니다. 로컬 파일이 변경된경우 리모트Git 내역을 반영 못할수도 있습니다. 참고바랍니다.",
+                                      [=]() { 
+                                        if (ConfirmationDialog::confirm("Git에서 변경사항 적용 후 자동 재부팅 됩니다. 없으면 재부팅하지 않습니다. 진행하시겠습니까?")){
+                                          std::system(gitpull);
+                                        }
+                                      }));
+
+  main_layout->addWidget(horizontal_line());
+
+  const char* git_reset = "/data/openpilot/git_reset.sh ''";
+  main_layout->addWidget(new ButtonControl("Git Reset", "실행", "로컬변경사항을 강제 초기화 후 리모트 최신 커밋내역을 적용합니다. 로컬 변경사항이 사라지니 주의 바랍니다.",
+                                      [=]() { 
+                                        if (ConfirmationDialog::confirm("로컬변경사항을 강제 초기화 후 리모트Git의 최신 커밋내역을 적용합니다. 진행하시겠습니까?")){
+                                          std::system(git_reset);
+                                        }
+                                      }));
+
+
+  main_layout->addWidget(horizontal_line());
+
+  const char* gitpull_cancel = "/data/openpilot/gitpull_cancel.sh ''";
+  main_layout->addWidget(new ButtonControl("Git Pull 취소", "실행", "Git Pull을 취소하고 이전상태로 되돌립니다. 커밋내역이 여러개인경우 최신커밋 바로 이전상태로 되돌립니다.",
+                                      [=]() { 
+                                        if (ConfirmationDialog::confirm("GitPull 이전 상태로 되돌립니다. 진행하시겠습니까?")){
+                                          std::system(gitpull_cancel);
+                                        }
+                                      }));
+
+  main_layout->addWidget(horizontal_line());
+
+  const char* panda_flashing = "/data/openpilot/panda_flashing.sh ''";
+  main_layout->addWidget(new ButtonControl("판다 플래싱", "실행", "판다플래싱이 진행되면 판다의 녹색LED가 빠르게 깜빡이며 완료되면 자동 재부팅 됩니다. 절대로 장치의 전원을 끄거나 임의로 분리하지 마시기 바랍니다.",
+                                      [=]() {
+                                        if (ConfirmationDialog::confirm("판다플래싱을 진행하시겠습니까?")) {
+                                          std::system(panda_flashing);
+                                        }
+                                      }));
+
   setStyleSheet(R"(QLabel {font-size: 50px;})");
 
   fs_watch = new QFileSystemWatcher(this);
   QObject::connect(fs_watch, &QFileSystemWatcher::fileChanged, [=](const QString path) {
-    int update_failed_count = Params().get<int>("UpdateFailedCount").value_or(0);
+    int update_failed_count = params.get<int>("UpdateFailedCount").value_or(0);
     if (path.contains("UpdateFailedCount") && update_failed_count > 0) {
-      lastUpdateTimeLbl->setText("failed to fetch update");
-      updateButton->setText("확인");
-      updateButton->setEnabled(true);
+      lastUpdateLbl->setText("failed to fetch update");
+      updateBtn->setText("확인");
+      updateBtn->setEnabled(true);
     } else if (path.contains("LastUpdateTime")) {
       updateLabels();
     }
@@ -337,121 +403,25 @@ void SoftwarePanel::showEvent(QShowEvent *event) {
 }
 
 void SoftwarePanel::updateLabels() {
-  Params params = Params();
-  std::string brand = params.getBool("Passive") ? "대시캠" : "오픈파일럿";
-  QList<QPair<QString, std::string>> dev_params = {
-    //{"Git Branch", params.get("GitBranch")},
-    //{"Git Commit", params.get("GitCommit").substr(0, 10)},
-    {"Panda Firmware", params.get("PandaFirmwareHex")},
-    {"OS Version", Hardware::get_os_version()},
-  };
-
-  QString version = QString::fromStdString(brand + " v" + params.get("Version").substr(0, 14)).trimmed();
-  QString remote = QString::fromStdString(params.get("GitRemote").substr(19)).trimmed();
-  QString branch = QString::fromStdString(params.get("GitBranch")).trimmed();
-  QString lastUpdateTime = "";
-
-  std::string last_update_param = params.get("LastUpdateTime");
-  if (!last_update_param.empty()){
-    QDateTime lastUpdateDate = QDateTime::fromString(QString::fromStdString(last_update_param + "Z"), Qt::ISODate);
-    lastUpdateTime = timeAgo(lastUpdateDate);
+  QString lastUpdate = "";
+  auto tm = params.get("LastUpdateTime");
+  if (!tm.empty()) {
+    lastUpdate = timeAgo(QDateTime::fromString(QString::fromStdString(tm + "Z"), Qt::ISODate));
   }
 
-  if (labels.size() < dev_params.size()) {
-    versionLbl = new LabelControl("Version", version, QString::fromStdString(params.get("ReleaseNotes")).trimmed());
-    layout()->addWidget(versionLbl);
-    layout()->addWidget(horizontal_line());
-    remoteLbl = new LabelControl("Git Remote", remote, "");
-    layout()->addWidget(remoteLbl);
-    layout()->addWidget(horizontal_line());
-    branchLbl = new LabelControl("Git Branch", branch, "");
-    layout()->addWidget(branchLbl);
-    layout()->addWidget(horizontal_line());
-
-    lastUpdateTimeLbl = new LabelControl("Last Update Check", lastUpdateTime, "");
-    layout()->addWidget(lastUpdateTimeLbl);
-    layout()->addWidget(horizontal_line());
-
-    updateButton = new ButtonControl("Check for Update", "확인", "", [=]() {
-      Params params = Params();
-      if (params.getBool("IsOffroad")) {
-        fs_watch->addPath(QString::fromStdString(params.getParamsPath()) + "/d/LastUpdateTime");
-        fs_watch->addPath(QString::fromStdString(params.getParamsPath()) + "/d/UpdateFailedCount");
-        updateButton->setText("확인중");
-        updateButton->setEnabled(false);
-      }
-      std::system("pkill -1 -f selfdrive.updated");
-    }, "", this);
-    layout()->addWidget(updateButton);
-    layout()->addWidget(horizontal_line());
-
-    layout()->addWidget(new GitHash());
-    const char* gitpull = "/data/openpilot/gitpull.sh ''";
-    layout()->addWidget(new ButtonControl("Git Pull", "실행", "리모트 Git에서 변경사항이 있으면 로컬에 반영 후 자동 재부팅 됩니다. 변경사항이 없으면 재부팅하지 않습니다. 로컬 파일이 변경된경우 리모트Git 내역을 반영 못할수도 있습니다. 참고바랍니다.",
-                                        [=]() { 
-                                          if (ConfirmationDialog::confirm("Git에서 변경사항 적용 후 자동 재부팅 됩니다. 없으면 재부팅하지 않습니다. 진행하시겠습니까?")){
-                                            std::system(gitpull);
-                                          }
-                                        }));
-
-    layout()->addWidget(horizontal_line());
-
-    const char* git_reset = "/data/openpilot/git_reset.sh ''";
-    layout()->addWidget(new ButtonControl("Git Reset", "실행", "로컬변경사항을 강제 초기화 후 리모트 최신 커밋내역을 적용합니다. 로컬 변경사항이 사라지니 주의 바랍니다.",
-                                        [=]() { 
-                                          if (ConfirmationDialog::confirm("로컬변경사항을 강제 초기화 후 리모트Git의 최신 커밋내역을 적용합니다. 진행하시겠습니까?")){
-                                            std::system(git_reset);
-                                          }
-                                        }));
-
-
-    layout()->addWidget(horizontal_line());
-
-    const char* gitpull_cancel = "/data/openpilot/gitpull_cancel.sh ''";
-    layout()->addWidget(new ButtonControl("Git Pull 취소", "실행", "Git Pull을 취소하고 이전상태로 되돌립니다. 커밋내역이 여러개인경우 최신커밋 바로 이전상태로 되돌립니다.",
-                                        [=]() { 
-                                          if (ConfirmationDialog::confirm("GitPull 이전 상태로 되돌립니다. 진행하시겠습니까?")){
-                                            std::system(gitpull_cancel);
-                                          }
-                                        }));
-
-    layout()->addWidget(horizontal_line());
-
-    const char* panda_flashing = "/data/openpilot/panda_flashing.sh ''";
-    layout()->addWidget(new ButtonControl("판다 플래싱", "실행", "판다플래싱이 진행되면 판다의 녹색LED가 빠르게 깜빡이며 완료되면 자동 재부팅 됩니다. 절대로 장치의 전원을 끄거나 임의로 분리하지 마시기 바랍니다.",
-                                        [=]() {
-                                          if (ConfirmationDialog::confirm("판다플래싱을 진행하시겠습니까?")) {
-                                            std::system(panda_flashing);
-                                          }
-                                        }));
-    layout()->addWidget(horizontal_line());
-  } else {
-    versionLbl->setText(version);
-    remoteLbl->setText(remote);
-    branchLbl->setText(branch);
-    lastUpdateTimeLbl->setText(lastUpdateTime);
-    updateButton->setText("확인");
-    updateButton->setEnabled(true);
-  }
-
-  for (int i = 0; i < dev_params.size(); i++) {
-    const auto &[name, value] = dev_params[i];
-    QString val = QString::fromStdString(value).trimmed();
-    if (labels.size() > i) {
-      labels[i]->setText(val);
-    } else {
-      labels.push_back(new LabelControl(name, val));
-      layout()->addWidget(labels[i]);
-      if (i < (dev_params.size() - 1)) {
-        layout()->addWidget(horizontal_line());
-      }
-    }
-  }
+  versionLbl->setText(getBrandVersion());
+  lastUpdateLbl->setText(lastUpdate);
+  updateBtn->setText("CHECK");
+  updateBtn->setEnabled(true);
+  gitBranchLbl->setText(QString::fromStdString(params.get("GitBranch")));
+  gitCommitLbl->setText(QString::fromStdString(params.get("GitCommit")).left(10));
+  osVersionLbl->setText(QString::fromStdString(Hardware::get_os_version()));
 }
 
 QWidget * network_panel(QWidget * parent) {
 #ifdef QCOM
-  QVBoxLayout *layout = new QVBoxLayout;
+  QWidget *w = new QWidget(parent);
+  QVBoxLayout *layout = new QVBoxLayout(w);
   layout->setSpacing(30);
 
   layout->addWidget(new OpenpilotView());
@@ -477,9 +447,6 @@ QWidget * network_panel(QWidget * parent) {
   layout->addWidget(new SshLegacyToggle());
 
   layout->addStretch(1);
-
-  QWidget *w = new QWidget;
-  w->setLayout(layout);
 #else
   Networking *w = new Networking(parent);
 #endif
@@ -657,9 +624,13 @@ void SettingsWindow::showEvent(QShowEvent *event) {
     nav_btns->buttons()[0]->setChecked(true);
     return;
   }
+}
+
+SettingsWindow::SettingsWindow(QWidget *parent) : QFrame(parent) {
 
   // setup two main layouts
-  QVBoxLayout *sidebar_layout = new QVBoxLayout();
+  sidebar_widget = new QWidget;
+  QVBoxLayout *sidebar_layout = new QVBoxLayout(sidebar_widget);
   sidebar_layout->setMargin(0);
   panel_widget = new QStackedWidget();
   panel_widget->setStyleSheet(R"(
@@ -686,35 +657,41 @@ void SettingsWindow::showEvent(QShowEvent *event) {
   QObject::connect(device, &DevicePanel::reviewTrainingGuide, this, &SettingsWindow::reviewTrainingGuide);
   QObject::connect(device, &DevicePanel::showDriverView, this, &SettingsWindow::showDriverView);
 
-  QPair<QString, QWidget *> panels[] = {
+  QList<QPair<QString, QWidget *>> panels = {
     {"장치", device},
     {"네트워크", network_panel(this)},
     {"토글메뉴", new TogglesPanel(this)},
-    {"소프트웨어", new SoftwarePanel()},
+    {"소프트웨어", new SoftwarePanel(this)},
     {"사용자설정", user_panel(this)},
     {"튜닝", tuning_panel(this)},
   };
 
-  sidebar_layout->addSpacing(45);
+#ifdef ENABLE_MAPS
+  if (!Params().get("MapboxToken").empty()) {
+    panels.push_back({"Navigation", new MapPanel(this)});
+  }
+#endif
+  const int padding = panels.size() > 3 ? 25 : 35;
+
   nav_btns = new QButtonGroup();
   for (auto &[name, panel] : panels) {
     QPushButton *btn = new QPushButton(name);
     btn->setCheckable(true);
     btn->setChecked(nav_btns->buttons().size() == 0);
-    btn->setStyleSheet(R"(
+    btn->setStyleSheet(QString(R"(
       QPushButton {
         color: grey;
         border: none;
         background: none;
         font-size: 65px;
         font-weight: 500;
-        padding-top: 18px;
-        padding-bottom: 18px;
+        padding-top: %1px;
+        padding-bottom: %1px;
       }
       QPushButton:checked {
         color: white;
       }
-    )");
+    )").arg(padding));
 
     nav_btns->addButton(btn);
     sidebar_layout->addWidget(btn, 0, Qt::AlignRight);
@@ -731,15 +708,12 @@ void SettingsWindow::showEvent(QShowEvent *event) {
   sidebar_layout->setContentsMargins(50, 50, 100, 50);
 
   // main settings layout, sidebar + main panel
-  QHBoxLayout *settings_layout = new QHBoxLayout();
+  QHBoxLayout *main_layout = new QHBoxLayout(this);
 
-  sidebar_widget = new QWidget;
-  sidebar_widget->setLayout(sidebar_layout);
   sidebar_widget->setFixedWidth(500);
-  settings_layout->addWidget(sidebar_widget);
-  settings_layout->addWidget(panel_widget);
+  main_layout->addWidget(sidebar_widget);
+  main_layout->addWidget(panel_widget);
 
-  setLayout(settings_layout);
   setStyleSheet(R"(
     * {
       color: white;
@@ -751,15 +725,15 @@ void SettingsWindow::showEvent(QShowEvent *event) {
   )");
 }
 
-void SettingsWindow::hideEvent(QHideEvent *event){
+void SettingsWindow::hideEvent(QHideEvent *event) {
 #ifdef QCOM
   HardwareEon::close_activities();
 #endif
 
   // TODO: this should be handled by the Dialog classes
   QList<QWidget*> children = findChildren<QWidget *>();
-  for(auto &w : children){
-    if(w->metaObject()->superClass()->className() == QString("QDialog")){
+  for(auto &w : children) {
+    if(w->metaObject()->superClass()->className() == QString("QDialog")) {
       w->close();
     }
   }

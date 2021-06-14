@@ -1,4 +1,4 @@
-#include "setup.h"
+#include "selfdrive/ui/qt/widgets/setup.h"
 
 #include <QDebug>
 #include <QJsonDocument>
@@ -18,20 +18,19 @@ using qrcodegen::QrCode;
 PairingQRWidget::PairingQRWidget(QWidget* parent) : QWidget(parent) {
   qrCode = new QLabel;
   qrCode->setScaledContents(true);
-  QVBoxLayout* v = new QVBoxLayout;
-  v->addWidget(qrCode, 0, Qt::AlignCenter);
-  setLayout(v);
+  QVBoxLayout* main_layout = new QVBoxLayout(this);
+  main_layout->addWidget(qrCode, 0, Qt::AlignCenter);
 
   QTimer* timer = new QTimer(this);
   timer->start(30 * 1000);
   connect(timer, &QTimer::timeout, this, &PairingQRWidget::refresh);
 }
 
-void PairingQRWidget::showEvent(QShowEvent *event){
+void PairingQRWidget::showEvent(QShowEvent *event) {
   refresh();
 }
 
-void PairingQRWidget::refresh(){
+void PairingQRWidget::refresh() {
   Params params;
   QString IMEI = QString::fromStdString(params.get("IMEI"));
   QString serial = QString::fromStdString(params.get("HardwareSerial"));
@@ -48,7 +47,7 @@ void PairingQRWidget::refresh(){
   this->updateQrCode(qrString);
 }
 
-void PairingQRWidget::updateQrCode(QString text) {
+void PairingQRWidget::updateQrCode(const QString &text) {
   QrCode qr = QrCode::encodeText(text.toUtf8().data(), QrCode::Ecc::LOW);
   qint32 sz = qr.getSize();
   // make the image larger so we can have a white border
@@ -73,7 +72,7 @@ void PairingQRWidget::updateQrCode(QString text) {
 }
 
 PrimeUserWidget::PrimeUserWidget(QWidget* parent) : QWidget(parent) {
-  mainLayout = new QVBoxLayout;
+  mainLayout = new QVBoxLayout(this);
   mainLayout->setMargin(30);
 
   QLabel* commaPrime = new QLabel("오픈파일럿");
@@ -100,7 +99,6 @@ PrimeUserWidget::PrimeUserWidget(QWidget* parent) : QWidget(parent) {
   points = new QLabel();
   //mainLayout->addWidget(points, 0, Qt::AlignTop);
 
-  setLayout(mainLayout);
   setStyleSheet(R"(
     QLabel {
       font-size: 70px;
@@ -138,19 +136,17 @@ void PrimeUserWidget::replyFinished(const QString &response) {
 }
 
 PrimeAdWidget::PrimeAdWidget(QWidget* parent) : QWidget(parent) {
-  QVBoxLayout* vlayout = new QVBoxLayout;
-  vlayout->setMargin(30);
-  vlayout->setSpacing(15);
+  QVBoxLayout* main_layout = new QVBoxLayout(this);
+  main_layout->setMargin(30);
+  main_layout->setSpacing(15);
 
-  vlayout->addWidget(new QLabel("오픈파일럿"), 1, Qt::AlignCenter);
+  main_layout->addWidget(new QLabel("오픈파일럿"), 1, Qt::AlignCenter);
 
   QPixmap hkgpix("../assets/offroad/hkg.png");
   QLabel *hkg = new QLabel();
   hkg->setPixmap(hkgpix.scaledToWidth(430, Qt::SmoothTransformation));
   hkg->setSizePolicy(QSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed));
-  vlayout->addWidget(hkg, 0, Qt::AlignCenter);
-
-  setLayout(vlayout);
+  main_layout->addWidget(hkg, 0, Qt::AlignCenter);
 }
 
 
@@ -159,7 +155,8 @@ SetupWidget::SetupWidget(QWidget* parent) : QFrame(parent) {
 
   // Unpaired, registration prompt layout
 
-  QVBoxLayout* finishRegistationLayout = new QVBoxLayout;
+  QWidget* finishRegistration = new QWidget;
+  QVBoxLayout* finishRegistationLayout = new QVBoxLayout(finishRegistration);
   finishRegistationLayout->setMargin(30);
   finishRegistationLayout->setSpacing(10);
 
@@ -192,13 +189,12 @@ SetupWidget::SetupWidget(QWidget* parent) : QFrame(parent) {
   finishRegistationLayout->addWidget(finishButton);
   QObject::connect(finishButton, &QPushButton::released, this, &SetupWidget::showQrCode);
 
-  QWidget* finishRegistration = new QWidget;
-  finishRegistration->setLayout(finishRegistationLayout);
   mainLayout->addWidget(finishRegistration);
 
   // Pairing QR code layout
 
-  QVBoxLayout* qrLayout = new QVBoxLayout;
+  QWidget* q = new QWidget;
+  QVBoxLayout* qrLayout = new QVBoxLayout(q);
 
   qrLayout->addSpacing(40);
   QLabel* qrLabel = new QLabel("장치를 스캔하세요!");
@@ -212,8 +208,6 @@ SetupWidget::SetupWidget(QWidget* parent) : QFrame(parent) {
 
   qrLayout->addWidget(new PairingQRWidget, 1);
 
-  QWidget* q = new QWidget;
-  q->setLayout(qrLayout);
   mainLayout->addWidget(q);
 
   primeAd = new PrimeAdWidget;
@@ -224,9 +218,8 @@ SetupWidget::SetupWidget(QWidget* parent) : QFrame(parent) {
 
   mainLayout->setCurrentWidget(primeAd);
 
-  QVBoxLayout *layout = new QVBoxLayout;
-  layout->addWidget(mainLayout);
-  setLayout(layout);
+  QVBoxLayout *main_layout = new QVBoxLayout(this);
+  main_layout->addWidget(mainLayout);
 
   setStyleSheet(R"(
     SetupWidget {
@@ -260,7 +253,7 @@ void SetupWidget::parseError(const QString &response) {
   mainLayout->setCurrentIndex(0);
 }
 
-void SetupWidget::showQrCode(){
+void SetupWidget::showQrCode() {
   showQr = true;
   mainLayout->setCurrentIndex(1);
 }

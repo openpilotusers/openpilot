@@ -542,19 +542,20 @@ struct ControlsState @0x97ff69c53601abf1 {
   cumLagMs @15 :Float32;
   canErrorCounter @57 :UInt32;
 
-  alertTextMsg1  @59 :Text;
-  alertTextMsg2  @60 :Text;
-  lateralControlMethod  @61 :UInt8;
-  limitSpeedCamera @62 :Float32;
-  limitSpeedCameraDist @63 :Float32;
-  steerRatio @64 :Float32;
-  longPlanSource  @65 :UInt8;
+  alertTextMsg1  @60 :Text;
+  alertTextMsg2  @61 :Text;
+  lateralControlMethod  @62 :UInt8;
+  limitSpeedCamera @63 :Float32;
+  limitSpeedCameraDist @64 :Float32;
+  steerRatio @65 :Float32;
+  longPlanSource  @66 :UInt8;
 
   lateralControlState :union {
     indiState @52 :LateralINDIState;
     pidState @53 :LateralPIDState;
     lqrState @55 :LateralLQRState;
     angleState @58 :LateralAngleState;
+    debugState @59 :LateralDebugState;
   }
 
   enum OpenpilotState @0xdbe58b96d2d1ac61 {
@@ -620,6 +621,13 @@ struct ControlsState @0x97ff69c53601abf1 {
   }
 
   struct LateralAngleState {
+    active @0 :Bool;
+    steeringAngleDeg @1 :Float32;
+    output @2 :Float32;
+    saturated @3 :Bool;
+  }
+
+  struct LateralDebugState {
     active @0 :Bool;
     steeringAngleDeg @1 :Float32;
     output @2 :Float32;
@@ -1229,6 +1237,8 @@ struct DriverState {
   partialFace @18 :Float32;
   distractedPose @19 :Float32;
   distractedEyes @20 :Float32;
+  eyesOnRoad @21 :Float32;
+  phoneUse @22 :Float32;
 
   irPwrDEPRECATED @10 :Float32;
   descriptorDEPRECATED @1 :List(Float32);

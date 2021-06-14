@@ -28,6 +28,7 @@ VISUAL_HUD = {
   VisualAlert.none: 0,
   VisualAlert.fcw: 1,
   VisualAlert.steerRequired: 1,
+  VisualAlert.ldw: 1,
   VisualAlert.brakePressed: 10,
   VisualAlert.wrongGear: 6,
   VisualAlert.seatbeltUnbuckled: 5,
@@ -624,6 +625,7 @@ FW_VERSIONS = {
   },
   CAR.CRV_5G: {
     (Ecu.programmedFuelInjection, 0x18da10f1, None): [
+      b'37805-5PA-AH20\x00\x00',
       b'37805-5PA-3060\x00\x00',
       b'37805-5PA-3080\x00\x00',
       b'37805-5PA-3180\x00\x00',

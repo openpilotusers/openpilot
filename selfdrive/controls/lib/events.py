@@ -13,6 +13,7 @@ VisualAlert = car.CarControl.HUDControl.VisualAlert
 AudibleAlert = car.CarControl.HUDControl.AudibleAlert
 EventName = car.CarEvent.EventName
 
+
 # Alert priorities
 class Priority(IntEnum):
   LOWEST = 0
@@ -21,6 +22,7 @@ class Priority(IntEnum):
   MID = 3
   HIGH = 4
   HIGHEST = 5
+
 
 # Event types
 class ET:
@@ -32,6 +34,7 @@ class ET:
   SOFT_DISABLE = 'softDisable'
   IMMEDIATE_DISABLE = 'immediateDisable'
   PERMANENT = 'permanent'
+
 
 # get event name from enum
 EVENT_NAME = {v: k for k, v in EventName.schema.enumerants.items()}
@@ -56,7 +59,7 @@ class Events:
     self.events.append(event_name)
 
   def clear(self):
-    self.events_prev = {k: (v+1 if k in self.events else 0) for k, v in self.events_prev.items()}
+    self.events_prev = {k: (v + 1 if k in self.events else 0) for k, v in self.events_prev.items()}
     self.events = self.static_events.copy()
 
   def any(self, event_type):
@@ -94,7 +97,7 @@ class Events:
       event = car.CarEvent.new_message()
       event.name = event_name
       for event_type in EVENTS.get(event_name, {}).keys():
-        setattr(event, event_type , True)
+        setattr(event, event_type, True)
       ret.append(event)
     return ret
 
@@ -138,6 +141,7 @@ class Alert:
   def __gt__(self, alert2) -> bool:
     return self.alert_priority > alert2.alert_priority
 
+
 class NoEntryAlert(Alert):
   def __init__(self, alert_text_2, audible_alert=AudibleAlert.chimeError,
                visual_alert=VisualAlert.none, duration_hud_alert=2.):
@@ -161,6 +165,7 @@ class ImmediateDisableAlert(Alert):
                      Priority.HIGHEST, VisualAlert.steerRequired,
                      AudibleAlert.chimeWarningRepeat, 2.2, 3., 4.),
 
+
 class EngagementAlert(Alert):
   def __init__(self, audible_alert=True):
     super().__init__("", "",
@@ -168,14 +173,15 @@ class EngagementAlert(Alert):
                      Priority.MID, VisualAlert.none,
                      audible_alert, .2, 0., 0.),
 
+
 class NormalPermanentAlert(Alert):
   def __init__(self, alert_text_1: str, alert_text_2: str, duration_text: float = 0.2):
     super().__init__(alert_text_1, alert_text_2,
                      AlertStatus.normal, AlertSize.mid if len(alert_text_2) else AlertSize.small,
                      Priority.LOWER, VisualAlert.none, AudibleAlert.none, 0., 0., duration_text),
 
-# ********** alert callback functions **********
 
+# ********** alert callback functions **********
 def below_steer_speed_alert(CP: car.CarParams, sm: messaging.SubMaster, metric: bool) -> Alert:
   speed = int(round(CP.minSteerSpeed * (CV.MS_TO_KPH if metric else CV.MS_TO_MPH)))
   unit = "km/h" if metric else "mph"
@@ -184,6 +190,7 @@ def below_steer_speed_alert(CP: car.CarParams, sm: messaging.SubMaster, metric: 
     "%d %s 이하에서는 조향제어가 불가합니다" % (speed, unit),
     AlertStatus.userPrompt, AlertSize.mid,
     Priority.MID, VisualAlert.none, AudibleAlert.none, 0., 0.4, .3)
+
 
 def calibration_incomplete_alert(CP: car.CarParams, sm: messaging.SubMaster, metric: bool) -> Alert:
   speed = int(MIN_SPEED_FILTER * (CV.MS_TO_KPH if metric else CV.MS_TO_MPH))
@@ -194,6 +201,7 @@ def calibration_incomplete_alert(CP: car.CarParams, sm: messaging.SubMaster, met
     AlertStatus.normal, AlertSize.mid,
     Priority.LOWEST, VisualAlert.none, AudibleAlert.none, 0., 0., .2)
 
+
 def no_gps_alert(CP: car.CarParams, sm: messaging.SubMaster, metric: bool) -> Alert:
   gps_integrated = sm['pandaState'].pandaType in [log.PandaState.PandaType.uno, log.PandaState.PandaType.dos]
   return Alert(
@@ -202,11 +210,13 @@ def no_gps_alert(CP: car.CarParams, sm: messaging.SubMaster, metric: bool) -> Al
     AlertStatus.normal, AlertSize.mid,
     Priority.LOWER, VisualAlert.none, AudibleAlert.none, 0., 0., .2, creation_delay=300.)
 
+
 def wrong_car_mode_alert(CP: car.CarParams, sm: messaging.SubMaster, metric: bool) -> Alert:
   text = "크루즈 모드 꺼짐"
   if CP.carName == "honda":
     text = "Main Switch Off"
   return NoEntryAlert(text, duration_hud_alert=0.)
+
 
 def startup_fuzzy_fingerprint_alert(CP: car.CarParams, sm: messaging.SubMaster, metric: bool) -> Alert:
   return Alert(
@@ -214,6 +224,17 @@ def startup_fuzzy_fingerprint_alert(CP: car.CarParams, sm: messaging.SubMaster, 
     f"유사한 핑거프린트: {CP.carFingerprint.title()[:40]}",
     AlertStatus.userPrompt, AlertSize.mid,
     Priority.LOWER, VisualAlert.none, AudibleAlert.none, 0., 0., 15.)
+
+
+def joystick_alert(CP: car.CarParams, sm: messaging.SubMaster, metric: bool) -> Alert:
+  axes = sm['testJoystick'].axes
+  gb, steer = list(axes)[:2] if len(axes) else (0., 0.)
+  return Alert(
+    "Joystick Mode",
+    f"Gas: {round(gb * 100.)}%, Steer: {round(steer * 100.)}%",
+    AlertStatus.normal, AlertSize.mid,
+    Priority.LOW, VisualAlert.none, AudibleAlert.none, 0., 0., .1)
+
 
 def standstill_alert(CP, sm, metric):
   elapsed_time = sm['pathPlan'].standstillElapsedTime
@@ -247,11 +268,12 @@ EVENTS: Dict[int, Dict[str, Union[Alert, Callable[[Any, messaging.SubMaster, boo
   },
 
   EventName.joystickDebug: {
+    ET.WARNING: joystick_alert,
     ET.PERMANENT: Alert(
-      "DEBUG ALERT",
+      "Joystick Mode",
       "",
-      AlertStatus.userPrompt, AlertSize.mid,
-      Priority.LOW, VisualAlert.none, AudibleAlert.none, .1, .1, .1),
+      AlertStatus.normal, AlertSize.small,
+      Priority.LOWER, VisualAlert.none, AudibleAlert.none, 0., 0., 0.1),
   },
 
   EventName.controlsInitializing: {
@@ -274,6 +296,7 @@ EVENTS: Dict[int, Dict[str, Union[Alert, Callable[[Any, messaging.SubMaster, boo
       Priority.LOWER, VisualAlert.none, AudibleAlert.none, 0., 0., 5.),
   },
 
+  # Car is recognized, but marked as dashcam only
   EventName.startupNoControl: {
     ET.PERMANENT: Alert(
       "대시캠 모드",
@@ -282,6 +305,7 @@ EVENTS: Dict[int, Dict[str, Union[Alert, Callable[[Any, messaging.SubMaster, boo
       Priority.LOWER, VisualAlert.none, AudibleAlert.none, 0., 0., 5.),
   },
 
+  # Car is not recognized
   EventName.startupNoCar: {
     ET.PERMANENT: Alert(
       "대시캠 모드: 지원되지 않는 차량",
@@ -290,6 +314,14 @@ EVENTS: Dict[int, Dict[str, Union[Alert, Callable[[Any, messaging.SubMaster, boo
       Priority.LOWER, VisualAlert.none, AudibleAlert.none, 0., 0., 5.),
   },
 
+  # openpilot uses the version strings from various ECUs to detect the correct car model.
+  # Usually all ECUs are recognized and an exact match to a car model can be made. Sometimes
+  # one or two ECUs have unrecognized versions, but the others are present in the database.
+  # If openpilot is confident about the match to a car model, it fingerprints anyway.
+  # In this case an alert is thrown since there is a small chance the wrong car was detected
+  # and the user should pay extra attention.
+  # This alert can be prevented by adding all ECU firmware version to openpilot:
+  # https://github.com/commaai/openpilot/wiki/Fingerprinting
   EventName.startupFuzzyFingerprint: {
     ET.PERMANENT: startup_fuzzy_fingerprint_alert,
   },
@@ -318,6 +350,9 @@ EVENTS: Dict[int, Dict[str, Union[Alert, Callable[[Any, messaging.SubMaster, boo
       Priority.LOWER, VisualAlert.none, AudibleAlert.none, 0., 0., .2),
   },
 
+  # Some features or cars are marked as community features. If openpilot
+  # detects the use of a community feature it switches to dashcam mode
+  # until these features are allowed using a toggle in settings.
   EventName.communityFeatureDisallowed: {
     # LOW priority to overcome Cruise Error
     ET.PERMANENT: Alert(
@@ -327,6 +362,9 @@ EVENTS: Dict[int, Dict[str, Union[Alert, Callable[[Any, messaging.SubMaster, boo
       Priority.LOW, VisualAlert.none, AudibleAlert.none, 0., 0., .2),
   },
 
+  # openpilot doesn't recognize the car. This switches openpilot into a
+  # read-only mode. This can be solved by adding your fingerprint.
+  # See https://github.com/commaai/openpilot/wiki/Fingerprinting for more information
   EventName.carUnrecognized: {
     ET.PERMANENT: Alert(
       "대시캠 모드",
@@ -366,7 +404,7 @@ EVENTS: Dict[int, Dict[str, Union[Alert, Callable[[Any, messaging.SubMaster, boo
       "핸들을 잡아주세요",
       "차선이탈이 감지되었습니다",
       AlertStatus.userPrompt, AlertSize.mid,
-      Priority.LOW, VisualAlert.steerRequired, AudibleAlert.chimePrompt, 1., 2., 3.),
+      Priority.LOW, VisualAlert.ldw, AudibleAlert.chimePrompt, 1., 2., 3.),
   },
 
   # ********** events only containing alerts that display while engaged **********
@@ -379,6 +417,14 @@ EVENTS: Dict[int, Dict[str, Union[Alert, Callable[[Any, messaging.SubMaster, boo
       Priority.LOWEST, VisualAlert.none, AudibleAlert.none, .0, .0, .1, creation_delay=1.),
   },
 
+  # openpilot tries to learn certain parameters about your car by observing
+  # how the car behaves to steering inputs from both human and openpilot driving.
+  # This includes:
+  # - steer ratio: gear ratio of the steering rack. Steering angle divided by tire angle
+  # - tire stiffness: how much grip your tires have
+  # - angle offset: most steering angle sensors are offset and measure a non zero angle when driving straight
+  # This alert is thrown when any of these values exceed a sanity check. This can be caused by
+  # bad alignment or bad sensor data. If this happens consistently consider creating an issue on GitHub
   EventName.vehicleModelInvalid: {
     ET.NO_ENTRY: NoEntryAlert("차량 매개 변수 식별 실패"),
     ET.SOFT_DISABLE: SoftDisableAlert("차량 매개 변수 식별 실패"),
@@ -537,18 +583,24 @@ EVENTS: Dict[int, Dict[str, Union[Alert, Callable[[Any, messaging.SubMaster, boo
       Priority.LOW, VisualAlert.none, AudibleAlert.none, .1, .1, .1),
   },
 
+  # Thrown when the fan is driven at >50% but is not rotating
   EventName.fanMalfunction: {
     ET.PERMANENT: NormalPermanentAlert("팬 오작동", "서비스팀에 문의하세요"),
   },
 
+  # Camera is not outputting frames at a constant framerate
   EventName.cameraMalfunction: {
     ET.PERMANENT: NormalPermanentAlert("카메라 오작동", "서비스팀에 문의하세요"),
   },
 
+  # Unused
   EventName.gpsMalfunction: {
     ET.PERMANENT: NormalPermanentAlert("GPS 오작동", "서비스팀에 문의하세요"),
   },
 
+  # When the GPS position and localizer diverge the localizer is reset to the
+  # current GPS position. This alert is thrown when the localizer is reset
+  # more often than expected.
   EventName.localizerMalfunction: {
     ET.PERMANENT: NormalPermanentAlert("로컬라이저 불안정", "서포트에 문의하세요"),
   },
@@ -709,6 +761,11 @@ EVENTS: Dict[int, Dict[str, Union[Alert, Callable[[Any, messaging.SubMaster, boo
     ET.NO_ENTRY: NoEntryAlert("기어가 드라이브모드가 아닙니다"),
   },
 
+  # This alert is thrown when the calibration angles are outside of the acceptable range.
+  # For example if the device is pointed too much to the left or the right.
+  # Usually this can only be solved by removing the mount from the windshield completely,
+  # and attaching while making sure the device is pointed straight forward and is level.
+  # See https://comma.ai/setup for more information
   EventName.calibrationInvalid: {
     ET.PERMANENT: NormalPermanentAlert("캘리브레이션 유효하지 않음", "장치 위치 조정 및 재 캘리브레이션"),
     ET.SOFT_DISABLE: SoftDisableAlert("캘리브레이션 유효하지 않음: 장치 위치 조정 및 재 캘리브레이션"),
@@ -741,6 +798,10 @@ EVENTS: Dict[int, Dict[str, Union[Alert, Callable[[Any, messaging.SubMaster, boo
     ET.NO_ENTRY: NoEntryAlert("배터리 부족"),
   },
 
+  # Different openpilot services communicate between each other at a certain
+  # interval. If communication does not follow the regular schedule this alert
+  # is thrown. This can mean a service crashed, did not broadcast a message for
+  # ten times the regular interval, or the average interval is more than 10% too high.
   EventName.commIssue: {
     ET.WARNING: Alert(
       "핸들을 잡아주세요",
@@ -752,6 +813,7 @@ EVENTS: Dict[int, Dict[str, Union[Alert, Callable[[Any, messaging.SubMaster, boo
     #                          audible_alert=AudibleAlert.none),
   },
 
+  # Thrown when manager detects a service exited unexpectedly while driving
   EventName.processNotRunning: {
     ET.NO_ENTRY: NoEntryAlert("시스템 오작동: 장치를 재시작하세요",
                               audible_alert=AudibleAlert.none),
@@ -759,19 +821,29 @@ EVENTS: Dict[int, Dict[str, Union[Alert, Callable[[Any, messaging.SubMaster, boo
 
   EventName.radarFault: {
     ET.SOFT_DISABLE: SoftDisableAlert("레이더 오류: 차량을 재시작하세요"),
-    ET.NO_ENTRY : NoEntryAlert("레이더 오류: 차량을 재시작하세요"),
+    ET.NO_ENTRY: NoEntryAlert("레이더 오류: 차량을 재시작하세요"),
   },
 
+  # Every frame from the camera should be processed by the model. If modeld
+  # is not processing frames fast enough they have to be dropped. This alert is
+  # thrown when over 20% of frames are dropped.
   EventName.modeldLagging: {
     ET.SOFT_DISABLE: SoftDisableAlert("주행 모델 지연"),
-    ET.NO_ENTRY : NoEntryAlert("주행 모델 지연"),
+    ET.NO_ENTRY: NoEntryAlert("주행 모델 지연"),
   },
 
+  # Besides predicting the path, lane lines and lead car data the model also
+  # predicts the current velocity and rotation speed of the car. If the model is
+  # very uncertain about the current velocity while the car is moving, this
+  # usually means the model has trouble understanding the scene. This is used
+  # as a heuristic to warn the driver.
   EventName.posenetInvalid: {
     ET.SOFT_DISABLE: SoftDisableAlert("전방 영상인식이 원할하지 않습니다"),
     ET.NO_ENTRY: NoEntryAlert("전방 영상인식이 원할하지 않습니다"),
   },
 
+  # When the localizer detects an acceleration of more than 40 m/s^2 (~4G) we
+  # alert the driver the device might have fallen from the windshield.
   EventName.deviceFalling: {
     ET.SOFT_DISABLE: SoftDisableAlert("장치의 마운트 연결이 불안합니다"),
     ET.NO_ENTRY: NoEntryAlert("장치의 마운트 연결이 불안합니다"),
@@ -780,7 +852,7 @@ EVENTS: Dict[int, Dict[str, Union[Alert, Callable[[Any, messaging.SubMaster, boo
   EventName.lowMemory: {
     ET.SOFT_DISABLE: SoftDisableAlert("메모리 부족: 장치를 재시작하세요"),
     ET.PERMANENT: NormalPermanentAlert("메모리 부족", "장치를 재시작하세요"),
-    ET.NO_ENTRY : NoEntryAlert("메모리 부족: 장치를 재시작하세요",
+    ET.NO_ENTRY: NoEntryAlert("메모리 부족: 장치를 재시작하세요",
                                audible_alert=AudibleAlert.chimeDisengage),
   },
 
@@ -809,12 +881,18 @@ EVENTS: Dict[int, Dict[str, Union[Alert, Callable[[Any, messaging.SubMaster, boo
                                        duration_text=10.),
   },
 
+  # Sometimes the USB stack on the device can get into a bad state
+  # causing the connection to the panda to be lost
   EventName.usbError: {
     ET.SOFT_DISABLE: SoftDisableAlert("USB 오류: 장치를 재시작 하세요"),
     ET.PERMANENT: NormalPermanentAlert("USB 오류: 장치를 재시작 하세요", ""),
     ET.NO_ENTRY: NoEntryAlert("USB 오류: 장치를 재시작 하세요"),
   },
 
+  # This alert can be thrown for the following reasons:
+  # - No CAN data received at all
+  # - CAN data is received, but some message are not received at the right frequency
+  # If you're not writing a new car port, this is usually cause by faulty wiring
   EventName.canError: {
     ET.IMMEDIATE_DISABLE: ImmediateDisableAlert("CAN 오류: CAN 신호를 확인하세요"),
     ET.PERMANENT: Alert(
@@ -855,15 +933,24 @@ EVENTS: Dict[int, Dict[str, Union[Alert, Callable[[Any, messaging.SubMaster, boo
     ET.NO_ENTRY: NoEntryAlert("후진 기어"),
   },
 
+  # On cars that use stock ACC the car can decide to cancel ACC for various reasons.
+  # When this happens we can no long control the car so the user needs to be warned immediately.
   EventName.cruiseDisabled: {
     ET.IMMEDIATE_DISABLE: ImmediateDisableAlert("크루즈 꺼짐"),
   },
 
+  # For planning the trajectory Model Predictive Control (MPC) is used. This is
+  # an optimization algorithm that is not guaranteed to find a feasible solution.
+  # If no solution is found or the solution has a very high cost this alert is thrown.
   EventName.plannerError: {
     ET.IMMEDIATE_DISABLE: ImmediateDisableAlert("Planner Solution Error"),
     ET.NO_ENTRY: NoEntryAlert("Planner Solution Error"),
   },
 
+  # When the relay in the harness box opens the CAN bus between the LKAS camera
+  # and the rest of the car is separated. When messages from the LKAS camera
+  # are received on the car side this usually means the relay hasn't opened correctly
+  # and this alert is thrown.
   EventName.relayMalfunction: {
     ET.IMMEDIATE_DISABLE: ImmediateDisableAlert("하네스 오작동"),
     ET.PERMANENT: NormalPermanentAlert("하네스 오작동", "장치를 점검하세요"),
@@ -876,7 +963,7 @@ EVENTS: Dict[int, Dict[str, Union[Alert, Callable[[Any, messaging.SubMaster, boo
       "선행차량이 없습니다",
       AlertStatus.normal, AlertSize.mid,
       Priority.HIGH, VisualAlert.none, AudibleAlert.none, .4, 2., 3.),
-    ET.NO_ENTRY : NoEntryAlert("선행차량이 없습니다"),
+    ET.NO_ENTRY: NoEntryAlert("선행차량이 없습니다"),
   },
 
   EventName.speedTooLow: {
@@ -887,6 +974,7 @@ EVENTS: Dict[int, Dict[str, Union[Alert, Callable[[Any, messaging.SubMaster, boo
       Priority.HIGH, VisualAlert.none, AudibleAlert.none, .4, 2., 3.),
   },
 
+  # When the car is driving faster than most cars in the training data the model outputs can be unpredictable
   EventName.speedTooHigh: {
     ET.WARNING: Alert(
       "속도가 너무 높습니다",
