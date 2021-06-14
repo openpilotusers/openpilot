@@ -58,7 +58,6 @@ OffroadAlert::OffroadAlert(QWidget* parent) : QFrame(parent) {
     });
   });
 
-  setLayout(layout);
   setStyleSheet(R"(
     * {
       font-size: 48px;
