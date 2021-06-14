@@ -326,7 +326,7 @@ SoftwarePanel::SoftwarePanel(QWidget* parent) : QWidget(parent) {
       const QString paramsPath = QString::fromStdString(params.getParamsPath());
       fs_watch->addPath(paramsPath + "/d/LastUpdateTime");
       fs_watch->addPath(paramsPath + "/d/UpdateFailedCount");
-      updateBtn->setText("CHECKING");
+      updateBtn->setText("확인중");
       updateBtn->setEnabled(false);
     }
     std::system("pkill -1 -f selfdrive.updated");
@@ -454,7 +454,8 @@ QWidget * network_panel(QWidget * parent) {
 }
 
 QWidget * user_panel(QWidget * parent) {
-  QVBoxLayout *layout = new QVBoxLayout;
+  QWidget *w = new QWidget(parent);
+  QVBoxLayout *layout = new QVBoxLayout(w);
 
   // OPKR
   layout->addWidget(new LabelControl("UI설정", ""));
@@ -556,14 +557,12 @@ QWidget * user_panel(QWidget * parent) {
 
   layout->addStretch(1);
 
-  QWidget *w = new QWidget;
-  w->setLayout(layout);
-
   return w;
 }
 
 QWidget * tuning_panel(QWidget * parent) {
-  QVBoxLayout *layout = new QVBoxLayout;
+  QWidget *w = new QWidget(parent);
+  QVBoxLayout *layout = new QVBoxLayout(w);
 
   // OPKR
   layout->addWidget(new LabelControl("튜닝메뉴", ""));
@@ -611,9 +610,6 @@ QWidget * tuning_panel(QWidget * parent) {
   }
 
   layout->addStretch(1);
-
-  QWidget *w = new QWidget;
-  w->setLayout(layout);
 
   return w;
 }
