@@ -537,7 +537,7 @@ class Controls:
 
     if not self.joystick_mode:
       # Gas/Brake PID loop
-     actuators.gas, actuators.brake = self.LoC.update(self.active and CS.cruiseState.speed > 1., CS, v_acc_sol, long_plan.vTargetFuture, long_plan.aTarget, a_acc_sol, self.CP, long_plan.hasLead, self.sm['radarState'], long_plan.longitudinalPlanSource)
+      actuators.gas, actuators.brake = self.LoC.update(self.active and CS.cruiseState.speed > 1., CS, v_acc_sol, long_plan.vTargetFuture, long_plan.aTarget, a_acc_sol, self.CP, long_plan.hasLead, self.sm['radarState'], long_plan.longitudinalPlanSource)
 
       # Steering PID loop and lateral MPC
       actuators.steer, actuators.steeringAngleDeg, lac_log = self.LaC.update(self.active, CS, self.CP, self.VM, params, lat_plan)
