@@ -334,7 +334,7 @@ SoftwarePanel::SoftwarePanel(QWidget* parent) : QWidget(parent) {
   }, "", this);
 
   QVBoxLayout *main_layout = new QVBoxLayout(this);
-  QWidget *widgets[] = {versionLbl, gitRemoteLbl, gitBranchLbl, osVersionLbl};
+  QWidget *widgets[] = {versionLbl, gitRemoteLbl, gitBranchLbl};
   for (int i = 0; i < std::size(widgets); ++i) {
     main_layout->addWidget(widgets[i]);
     if (i < std::size(widgets) - 1) {
