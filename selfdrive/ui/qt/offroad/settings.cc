@@ -68,7 +68,7 @@ TogglesPanel::TogglesPanel(QWidget *parent) : QWidget(parent) {
                                                  this);
   toggles.append(record_toggle);
   toggles.append(new ParamControl("EndToEndToggle",
-                                   "\U0001f96c 차선 비활성화 모드 (알파) \U0001f96c",
+                                   "차선 비활성화 모드 (알파)",
                                    "이 모드에서 오픈파일럿은 차선을 따라 주행하지 않고 사람이 운전하는 것 처럼 주행합니다.",
                                    "../assets/offroad/icon_road.png",
                                    this));
@@ -316,11 +316,12 @@ DevicePanel::DevicePanel(QWidget* parent) : QWidget(parent) {
 }
 
 SoftwarePanel::SoftwarePanel(QWidget* parent) : QWidget(parent) {
+  gitRemoteLbl = new LabelControl("Git Remote");
   gitBranchLbl = new LabelControl("Git Branch");
   gitCommitLbl = new LabelControl("Git Commit");
   osVersionLbl = new LabelControl("OS Version");
   versionLbl = new LabelControl("Version", "", QString::fromStdString(params.get("ReleaseNotes")).trimmed());
-  lastUpdateLbl = new LabelControl("Last Update Check", "", "The last time openpilot successfully checked for an update. The updater only runs while the car is off.");
+  lastUpdateLbl = new LabelControl("Last Update Check", "", "");
   updateBtn = new ButtonControl("Check for Update", "", "", [=]() {
     if (params.getBool("IsOffroad")) {
       const QString paramsPath = QString::fromStdString(params.getParamsPath());
@@ -333,7 +334,7 @@ SoftwarePanel::SoftwarePanel(QWidget* parent) : QWidget(parent) {
   }, "", this);
 
   QVBoxLayout *main_layout = new QVBoxLayout(this);
-  QWidget *widgets[] = {versionLbl, lastUpdateLbl, updateBtn, gitBranchLbl, gitCommitLbl, osVersionLbl};
+  QWidget *widgets[] = {versionLbl, gitRemoteLbl, gitBranchLbl, osVersionLbl};
   for (int i = 0; i < std::size(widgets); ++i) {
     main_layout->addWidget(widgets[i]);
     if (i < std::size(widgets) - 1) {
@@ -411,8 +412,9 @@ void SoftwarePanel::updateLabels() {
 
   versionLbl->setText(getBrandVersion());
   lastUpdateLbl->setText(lastUpdate);
-  updateBtn->setText("CHECK");
+  updateBtn->setText("확인");
   updateBtn->setEnabled(true);
+  gitRemoteLbl->setText(QString::fromStdString(params.get("GitRemote").substr(19)).trimmed());
   gitBranchLbl->setText(QString::fromStdString(params.get("GitBranch")));
   gitCommitLbl->setText(QString::fromStdString(params.get("GitCommit")).left(10));
   osVersionLbl->setText(QString::fromStdString(Hardware::get_os_version()));
@@ -667,7 +669,7 @@ SettingsWindow::SettingsWindow(QWidget *parent) : QFrame(parent) {
     panels.push_back({"Navigation", new MapPanel(this)});
   }
 #endif
-  const int padding = panels.size() > 3 ? 25 : 35;
+  const int padding = panels.size() > 3 ? 18 : 28;
 
   nav_btns = new QButtonGroup();
   for (auto &[name, panel] : panels) {
