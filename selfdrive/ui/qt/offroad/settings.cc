@@ -418,7 +418,7 @@ void SoftwarePanel::updateLabels() {
   gitBranchLbl->setText(QString::fromStdString(params.get("GitBranch")));
   gitCommitLbl->setText(QString::fromStdString(params.get("GitCommit")).left(10));
   osVersionLbl->setText(QString::fromStdString(Hardware::get_os_version()));
-  osVersionLbl->setAlignment(Qt::AlignVCenter);
+  osVersionLbl.setAlignment(Qt::AlignVCenter);
 }
 
 QWidget * network_panel(QWidget * parent) {
