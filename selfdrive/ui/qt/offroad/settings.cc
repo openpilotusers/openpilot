@@ -320,7 +320,7 @@ SoftwarePanel::SoftwarePanel(QWidget* parent) : QWidget(parent) {
   gitBranchLbl = new LabelControl("Git Branch");
   gitCommitLbl = new LabelControl("Git Commit");
   osVersionLbl = new LabelControl("OS Version");
-  versionLbl = new LabelControl("Version", "", QString::fromStdString(params.get("ReleaseNotes")).trimmed());
+  versionLbl = new LabelControl("Version");
   lastUpdateLbl = new LabelControl("Last Update Check", "", "The last time openpilot successfully checked for an update. The updater only runs while the car is off.");
   updateBtn = new ButtonControl("Check for Update", "", "", [=]() {
     if (params.getBool("IsOffroad")) {
@@ -334,7 +334,7 @@ SoftwarePanel::SoftwarePanel(QWidget* parent) : QWidget(parent) {
   }, "", this);
 
   QVBoxLayout *main_layout = new QVBoxLayout(this);
-  QWidget *widgets[] = {versionLbl, lastUpdateLbl, updateBtn, gitBranchLbl, gitCommitLbl, osVersionLbl};
+  QWidget *widgets[] = {versionLbl, gitRemoteLbl, gitBranchLbl, osVersionLbl};
   for (int i = 0; i < std::size(widgets); ++i) {
     main_layout->addWidget(widgets[i]);
     if (i < std::size(widgets) - 1) {
@@ -414,10 +414,11 @@ void SoftwarePanel::updateLabels() {
   lastUpdateLbl->setText(lastUpdate);
   updateBtn->setText("확인");
   updateBtn->setEnabled(true);
-  gitRemoteLbl->setText(QString::fromStdString(params.get("GitRemote").substr(19)).trimmed());
+  gitRemoteLbl->setText(QString::fromStdString(params.get("GitRemote").substr(19)));
   gitBranchLbl->setText(QString::fromStdString(params.get("GitBranch")));
   gitCommitLbl->setText(QString::fromStdString(params.get("GitCommit")).left(10));
   osVersionLbl->setText(QString::fromStdString(Hardware::get_os_version()));
+  osVersionLbl->setAlignment(Qt::AlignVCenter);
 }
 
 QWidget * network_panel(QWidget * parent) {
