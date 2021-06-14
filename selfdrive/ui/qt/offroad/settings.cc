@@ -664,12 +664,14 @@ SettingsWindow::SettingsWindow(QWidget *parent) : QFrame(parent) {
     {"튜닝", tuning_panel(this)},
   };
 
+  sidebar_layout->addSpacing(45);
+
 #ifdef ENABLE_MAPS
   if (!Params().get("MapboxToken").empty()) {
     panels.push_back({"Navigation", new MapPanel(this)});
   }
 #endif
-  const int padding = panels.size() > 3 ? 18 : 28;
+  const int padding = panels.size() > 3 ? 25 : 35;
 
   nav_btns = new QButtonGroup();
   for (auto &[name, panel] : panels) {
