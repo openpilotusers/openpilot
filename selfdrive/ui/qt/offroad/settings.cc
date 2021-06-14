@@ -671,7 +671,7 @@ SettingsWindow::SettingsWindow(QWidget *parent) : QFrame(parent) {
     panels.push_back({"Navigation", new MapPanel(this)});
   }
 #endif
-  const int padding = panels.size() > 3 ? 25 : 35;
+  const int padding = panels.size() > 3 ? 18 : 28;
 
   nav_btns = new QButtonGroup();
   for (auto &[name, panel] : panels) {
