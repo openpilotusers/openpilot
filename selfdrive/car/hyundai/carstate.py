@@ -494,7 +494,7 @@ class CarState(CarStateBase):
       ("PRESSURE_RR", "TPMS11", 0),
 
       ("OPKR_S_Dist", "NAVI", 0),
-      ("OPKR_S_Sign", "NAVI", 0),
+      ("OPKR_S_Sign", "NAVI", 31),
       ("OPKR_SBR_Dist", "NAVI", 0),
     ]
 
