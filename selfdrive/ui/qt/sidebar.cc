@@ -123,7 +123,7 @@ void Sidebar::paintEvent(QPaintEvent *event) {
   configFont(p, "Open Sans", 35, "Regular");
   p.setPen(QColor(0xff, 0xff, 0xff));
   const QRect r = QRect(50, 247, 100, 50);
-  p.drawText(r, Qt::AlignCenter, net_type);
+  p.drawText(r, Qt::AlignHCenter, net_type);
 
   // metrics
   drawMetric(p, "시스템온도", QString("%1°C").arg(temp_val), temp_status, 338);
