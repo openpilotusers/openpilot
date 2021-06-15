@@ -4,7 +4,7 @@
 
 #include "selfdrive/ui/qt/qt_window.h"
 #include "selfdrive/ui/qt/util.h"
-#include "dashcam.h"
+#include "selfdrive/ui/dashcam.h"
 
 const int FACE_IMG_SIZE = 130;
 
