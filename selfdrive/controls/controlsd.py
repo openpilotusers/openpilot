@@ -25,6 +25,7 @@ from selfdrive.controls.lib.longitudinal_planner import LON_MPC_STEP
 from selfdrive.locationd.calibrationd import Calibration
 from selfdrive.hardware import HARDWARE, TICI
 from selfdrive.car.hyundai.values import Buttons
+from decimal import Decimal
 
 import common.log as trace1
 
@@ -185,12 +186,13 @@ class Controls:
     
     self.mpc_frame = 0
 
-    self.steerRatio_Max = float(int(params.get("SteerRatioMaxAdj", encoding="utf8")) * 0.1)
+    self.steerRatio_Max = float(Decimal(params.get("SteerRatioMaxAdj", encoding="utf8")) * Decimal('0.1'))
     self.angle_differ_range = [0, 15]
     self.steerRatio_range = [self.CP.steerRatio, self.steerRatio_Max]
     self.new_steerRatio = self.CP.steerRatio
     self.new_steerRatio_prev = self.CP.steerRatio
     self.steerRatio_to_send = 0
+    self.live_sr = params.get_bool("OpkrLiveSteerRatio")
     
     self.model_long_alert_prev = True
 
@@ -490,9 +492,7 @@ class Controls:
     anglesteer_desire = lat_plan.steerAngleDesireDeg   
     output_scale = lat_plan.outputScale
 
-    live_sr = Params().get_bool('OpkrLiveSteerRatio')
-
-    if not live_sr:
+    if not self.live_sr:
       angle_diff = abs(anglesteer_desire) - abs(anglesteer_current)
       if abs(output_scale) >= self.CP.steerMaxV[0] and CS.vEgo > 8:
         self.new_steerRatio_prev = interp(angle_diff, self.angle_differ_range, self.steerRatio_range)
@@ -509,7 +509,7 @@ class Controls:
     # Update VehicleModel
     params = self.sm['liveParameters']
     x = max(params.stiffnessFactor, 0.1)
-    if live_sr:
+    if self.live_sr:
       sr = max(params.steerRatio, 0.1)
     else:
      sr = max(self.new_steerRatio, 0.1)

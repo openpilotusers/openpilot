@@ -123,13 +123,11 @@ class LateralPlanner():
     self.v_cruise_kph = sm['controlsState'].vCruise
     self.stand_still = sm['carState'].standStill
     try:
-      lateral_control_method = 0
-      lateral_control_method = int(sm['controlsState'].lateralControlMethod)
-      if lateral_control_method == 0:
+      if CP.lateralTuning.which() == 'pid':
         self.output_scale = sm['controlsState'].lateralControlState.pidState.output
-      elif lateral_control_method == 1:
+      elif CP.lateralTuning.which() == 'indi':
         self.output_scale = sm['controlsState'].lateralControlState.indiState.output
-      elif lateral_control_method == 2:
+      elif CP.lateralTuning.which() == 'lqr':
         self.output_scale = sm['controlsState'].lateralControlState.lqrState.output
     except:
       pass
@@ -224,7 +222,8 @@ class LateralPlanner():
       self.libmpc.set_weights(MPC_COST_LAT.PATH, MPC_COST_LAT.HEADING, CP.steerRateCost)
       self.laneless_mode_status = False
     # use laneless, it might mitigate abrubt steering at stopping?
-    elif sm['radarState'].leadOne.dRel < 25 and (sm['radarState'].leadOne.vRel < 0 or (sm['radarState'].leadOne.vRel >= 0 and v_ego < 5)) and (abs(sm['controlsState'].steeringAngleDesiredDeg) - abs(sm['carState'].steeringAngleDeg)) > 2 and self.lane_change_state == LaneChangeState.off:
+    elif sm['radarState'].leadOne.dRel < 25 and (sm['radarState'].leadOne.vRel < 0 or (sm['radarState'].leadOne.vRel >= 0 and v_ego < 5)) and \
+     (abs(sm['controlsState'].steeringAngleDesiredDeg) - abs(sm['carState'].steeringAngleDeg)) > 2 and self.lane_change_state == LaneChangeState.off:
       d_path_xyz = self.path_xyz
       path_cost = np.clip(abs(self.path_xyz[0,1]/self.path_xyz_stds[0,1]), 0.5, 5.0) * MPC_COST_LAT.PATH
       # Heading cost is useful at low speed, otherwise end of plan can be off-heading
@@ -253,7 +252,8 @@ class LateralPlanner():
       self.libmpc.set_weights(path_cost, heading_cost, CP.steerRateCost)
       self.laneless_mode_status = True
       self.laneless_mode_status_buffer = True
-    elif self.laneless_mode == 2 and ((self.LP.lll_prob + self.LP.rll_prob)/2 > 0.5) and self.laneless_mode_status_buffer and not self.laneless_mode_at_stopping and self.lane_change_state == LaneChangeState.off:
+    elif self.laneless_mode == 2 and ((self.LP.lll_prob + self.LP.rll_prob)/2 > 0.5) and self.laneless_mode_status_buffer and \
+     not self.laneless_mode_at_stopping and self.lane_change_state == LaneChangeState.off:
       d_path_xyz = self.LP.get_d_path(v_ego, self.t_idxs, self.path_xyz)
       self.libmpc.set_weights(MPC_COST_LAT.PATH, MPC_COST_LAT.HEADING, CP.steerRateCost)
       self.laneless_mode_status = False
