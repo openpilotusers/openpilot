@@ -14,10 +14,6 @@ class CarInterface(CarInterfaceBase):
   def __init__(self, CP, CarController, CarState):
     super().__init__(CP, CarController, CarState)
     self.cp2 = self.CS.get_can2_parser(CP)
-    params = Params()
-    self.mad_mode_enabled = params.get_bool('MadModeEnabled')
-    self.lat_control_method = int(params.get("LateralControlMethod", encoding="utf8"))
-    self.shane_feed_forward = params.get_bool("ShaneFeedForward")
     self.lkas_button_alert = False
 
     self.blinker_status = 0
@@ -57,7 +53,9 @@ class CarInterface(CarInterfaceBase):
     ret.steerLimitTimer = float(Decimal(params.get("SteerLimitTimerAdj", encoding="utf8")) * Decimal('0.01'))
     ret.steerRatio = float(Decimal(params.get("SteerRatioAdj", encoding="utf8")) * Decimal('0.1'))
 
-    if self.lat_control_method == 0:
+    lat_control_method = int(params.get("LateralControlMethod", encoding="utf8"))
+    shane_feed_forward = params.get_bool("ShaneFeedForward")
+    if lat_control_method == 0:
       ret.lateralTuning.pid.kf = PidKf
       ret.lateralTuning.pid.kpBP = [0., 9.]
       ret.lateralTuning.pid.kpV = [0.1, PidKp]
@@ -65,8 +63,8 @@ class CarInterface(CarInterfaceBase):
       ret.lateralTuning.pid.kiV = [0.01, PidKi]
       ret.lateralTuning.pid.kdBP = [0.]
       ret.lateralTuning.pid.kdV = [PidKd]
-      ret.lateralTuning.pid.newKfTuned = True if self.shane_feed_forward else False # Shane's feedforward
-    elif self.lat_control_method == 1:
+      ret.lateralTuning.pid.newKfTuned = True if shane_feed_forward else False # Shane's feedforward
+    elif lat_control_method == 1:
       ret.lateralTuning.init('indi')
       ret.lateralTuning.indi.innerLoopGainBP = [0., 9.]
       ret.lateralTuning.indi.innerLoopGainV = [3.0, InnerLoopGain] # third tune. Highest value that still gives smooth control. Effects turning into curves.
@@ -96,7 +94,7 @@ class CarInterface(CarInterfaceBase):
         # Too high: twitchy hyper lane centering, oversteering
         # Too low: sloppy, all over lane
         # Just right: crisp lane centering
-    elif self.lat_control_method == 2:
+    elif lat_control_method == 2:
       ret.lateralTuning.init('lqr')
       ret.lateralTuning.lqr.scale = Scale
       ret.lateralTuning.lqr.ki = LqrKi
@@ -261,7 +259,7 @@ class CarInterface(CarInterfaceBase):
     ret.enableCruise = not ret.radarOffCan
     
     # set safety_hyundai_community only for non-SCC, MDPS harrness or SCC harrness cars or cars that have unknown issue
-    if ret.radarOffCan or ret.mdpsBus == 1 or ret.openpilotLongitudinalControl or ret.sccBus == 1 or self.mad_mode_enabled:
+    if ret.radarOffCan or ret.mdpsBus == 1 or ret.openpilotLongitudinalControl or ret.sccBus == 1 or params.get_bool('MadModeEnabled'):
       ret.safetyModel = car.CarParams.SafetyModel.hyundaiCommunity
     return ret
 
