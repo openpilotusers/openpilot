@@ -22,58 +22,40 @@ class CarInterface(CarInterfaceBase):
 
     self.blinker_status = 0
     self.blinker_timer = 0
-    
-    self.PidKp = float(Decimal(params.get("PidKp", encoding="utf8")) * Decimal('0.01'))
-    self.PidKi = float(Decimal(params.get("PidKi", encoding="utf8")) * Decimal('0.001'))
-    self.PidKd = float(Decimal(params.get("PidKd", encoding="utf8")) * Decimal('0.01'))
-    self.PidKf = float(Decimal(params.get("PidKf", encoding="utf8")) * Decimal('0.00001'))
-    self.InnerLoopGain = float(Decimal(params.get("InnerLoopGain", encoding="utf8")) * Decimal('0.1'))
-    self.OuterLoopGain = float(Decimal(params.get("OuterLoopGain", encoding="utf8")) * Decimal('0.1'))
-    self.TimeConstant = float(Decimal(params.get("TimeConstant", encoding="utf8")) * Decimal('0.1'))
-    self.ActuatorEffectiveness = float(Decimal(params.get("ActuatorEffectiveness", encoding="utf8")) * Decimal('0.1'))
-    self.Scale = float(Decimal(params.get("Scale", encoding="utf8")) * Decimal('1.0'))
-    self.LqrKi = float(Decimal(params.get("LqrKi", encoding="utf8")) * Decimal('0.001'))
-    self.DcGain = float(Decimal(params.get("DcGain", encoding="utf8")) * Decimal('0.0001'))
-    self.SteerMaxV = float(Decimal(params.get("SteerMaxvAdj", encoding="utf8")) * Decimal('0.1'))
-
-    self.tire_stiffness_factor = float(Decimal(params.get("TireStiffnessFactorAdj", encoding="utf8")) * Decimal('0.01'))
-    self.steerActuatorDelay = float(Decimal(params.get("SteerActuatorDelayAdj", encoding="utf8")) * Decimal('0.01'))
-    self.steerRateCost = float(Decimal(params.get("SteerRateCostAdj", encoding="utf8")) * Decimal('0.01'))
-    self.steerLimitTimer = float(Decimal(params.get("SteerLimitTimerAdj", encoding="utf8")) * Decimal('0.01'))
-    self.steerRatio = float(Decimal(params.get("SteerRatioAdj", encoding="utf8")) * Decimal('0.1'))
 
   @staticmethod
   def compute_gb(accel, speed):
     return float(accel) / 3.0
 
   @staticmethod
-  def get_params(self, candidate, fingerprint=gen_empty_fingerprint(), car_fw=[]):  # pylint: disable=dangerous-default-value
+  def get_params(candidate, fingerprint=gen_empty_fingerprint(), car_fw=[]):  # pylint: disable=dangerous-default-value
     ret = CarInterfaceBase.get_std_params(candidate, fingerprint)
 
     ret.carName = "hyundai"
     ret.safetyModel = car.CarParams.SafetyModel.hyundai
 
-    PidKp = self.PidKp
-    PidKi = self.PidKi
-    PidKd = self.PidKd
-    PidKf = self.PidKf
-    InnerLoopGain = self.InnerLoopGain
-    OuterLoopGain = self.OuterLoopGain
-    TimeConstant = self.TimeConstant
-    ActuatorEffectiveness = self.ActuatorEffectiveness
-    Scale = self.Scale
-    LqrKi = self.LqrKi
-    DcGain = self.DcGain
-    SteerMaxV = self.SteerMaxV
+    params = Params()
+    PidKp = float(Decimal(params.get("PidKp", encoding="utf8")) * Decimal('0.01'))
+    PidKi = float(Decimal(params.get("PidKi", encoding="utf8")) * Decimal('0.001'))
+    PidKd = float(Decimal(params.get("PidKd", encoding="utf8")) * Decimal('0.01'))
+    PidKf = float(Decimal(params.get("PidKf", encoding="utf8")) * Decimal('0.00001'))
+    InnerLoopGain = float(Decimal(params.get("InnerLoopGain", encoding="utf8")) * Decimal('0.1'))
+    OuterLoopGain = float(Decimal(params.get("OuterLoopGain", encoding="utf8")) * Decimal('0.1'))
+    TimeConstant = float(Decimal(params.get("TimeConstant", encoding="utf8")) * Decimal('0.1'))
+    ActuatorEffectiveness = float(Decimal(params.get("ActuatorEffectiveness", encoding="utf8")) * Decimal('0.1'))
+    Scale = float(Decimal(params.get("Scale", encoding="utf8")) * Decimal('1.0'))
+    LqrKi = float(Decimal(params.get("LqrKi", encoding="utf8")) * Decimal('0.001'))
+    DcGain = float(Decimal(params.get("DcGain", encoding="utf8")) * Decimal('0.0001'))
+    SteerMaxV = float(Decimal(params.get("SteerMaxvAdj", encoding="utf8")) * Decimal('0.1'))
 
     # Most Hyundai car ports are community features for now
     ret.communityFeature = False
 
-    tire_stiffness_factor = self.tire_stiffness_factor
-    ret.steerActuatorDelay = self.steerActuatorDelay
-    ret.steerRateCost = self.steerRateCost
-    ret.steerLimitTimer = self.steerLimitTimer
-    ret.steerRatio = self.steerRatio
+    tire_stiffness_factor = float(Decimal(params.get("TireStiffnessFactorAdj", encoding="utf8")) * Decimal('0.01'))
+    ret.steerActuatorDelay = float(Decimal(params.get("SteerActuatorDelayAdj", encoding="utf8")) * Decimal('0.01'))
+    ret.steerRateCost = float(Decimal(params.get("SteerRateCostAdj", encoding="utf8")) * Decimal('0.01'))
+    ret.steerLimitTimer = float(Decimal(params.get("SteerLimitTimerAdj", encoding="utf8")) * Decimal('0.01'))
+    ret.steerRatio = float(Decimal(params.get("SteerRatioAdj", encoding="utf8")) * Decimal('0.1'))
 
     if self.lat_control_method == 0:
       ret.lateralTuning.pid.kf = PidKf
