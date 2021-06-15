@@ -27,6 +27,7 @@ private:
   QImage face;
   bool is_rhd = false;
   bool frame_updated = false;
+  const QRect record_btn = QRect(1745, 905, 140, 140);
 };
 
 class DriverViewWindow : public QWidget {

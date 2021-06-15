@@ -4,6 +4,7 @@
 
 #include "selfdrive/ui/qt/qt_window.h"
 #include "selfdrive/ui/qt/util.h"
+#include "dashcam.h"
 
 const int FACE_IMG_SIZE = 130;
 
@@ -22,6 +23,12 @@ DriverViewWindow::DriverViewWindow(QWidget* parent) : QWidget(parent) {
 }
 
 void DriverViewWindow::mousePressEvent(QMouseEvent* e) {
+  // OPKR REC
+  if (record_btn.ptInRect(e->x(), e->y())) {
+    QUIState::ui_state.scene.recording = !QUIState::ui_state.scene.recording;
+    QUIState::ui_state.scene.touched = true;
+    return;
+  }
   emit done();
 }
 
