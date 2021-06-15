@@ -36,8 +36,6 @@ class ParamsLearner:
     self.steering_angle = 0
 
     self.valid = True
-    
-    self.tsf = float(Decimal(Params().get("TireStiffnessFactorAdj", encoding="utf8")) * Decimal('0.01'))
 
   def handle_log(self, t, which, msg):
     if which == 'liveLocationKalman':
@@ -125,7 +123,7 @@ def main(sm=None, pm=None):
   # When driving in wet conditions the stiffness can go down, and then be too low on the next drive
   # Without a way to detect this we have to reset the stiffness every drive
   #params['stiffnessFactor'] = 1.0
-  params['stiffnessFactor'] = self.tsf
+  params['stiffnessFactor'] = float(Decimal(Params().get("TireStiffnessFactorAdj", encoding="utf8")) * Decimal('0.01'))
 
   learner = ParamsLearner(CP, params['steerRatio'], params['stiffnessFactor'], math.radians(params['angleOffsetAverageDeg']))
 
