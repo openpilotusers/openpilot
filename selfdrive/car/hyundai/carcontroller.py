@@ -133,6 +133,7 @@ class CarController():
     self.steer_wind_down_enabled = self.params.get_bool("SteerWindDown")
     self.opkr_maxanglelimit = float(int(self.params.get("OpkrMaxAngleLimit", encoding="utf8")))
     self.mad_mode_enabled = self.params.get_bool("MadModeEnabled")
+    self.ldws_fix = self.params.get_bool("LdwsCarFix")
 
     self.leadcar_status = 0
 
@@ -330,12 +331,12 @@ class CarController():
     can_sends = []
     can_sends.append(create_lkas11(self.packer, frame, self.car_fingerprint, apply_steer, lkas_active,
                                    self.steer_wind_down, CS.lkas11, sys_warning, sys_state, enabled, left_lane, right_lane,
-                                   left_lane_warning, right_lane_warning, 0))
+                                   left_lane_warning, right_lane_warning, 0, self.ldws_fix, self.steer_wind_down_enabled))
 
     if CS.CP.mdpsBus: # send lkas11 bus 1 if mdps is bus 1
       can_sends.append(create_lkas11(self.packer, frame, self.car_fingerprint, apply_steer, lkas_active,
                                    self.steer_wind_down, CS.lkas11, sys_warning, sys_state, enabled, left_lane, right_lane,
-                                   left_lane_warning, right_lane_warning, 1))
+                                   left_lane_warning, right_lane_warning, 1, self.ldws_fix, self.steer_wind_down_enabled))
       if frame % 2: # send clu11 to mdps if it is not on bus 0
         can_sends.append(create_clu11(self.packer, frame, CS.clu11, Buttons.NONE, enabled_speed, CS.CP.mdpsBus))
 
