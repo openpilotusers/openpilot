@@ -24,7 +24,7 @@ DriverViewWindow::DriverViewWindow(QWidget* parent) : QWidget(parent) {
 
 void DriverViewWindow::mousePressEvent(QMouseEvent* e) {
   // OPKR REC
-  if (record_btn.ptInRect(e->x(), e->y())) {
+  if (rec_btn.ptInRect(e->x(), e->y())) {
     QUIState::ui_state.scene.recording = !QUIState::ui_state.scene.recording;
     QUIState::ui_state.scene.touched = true;
     return;
