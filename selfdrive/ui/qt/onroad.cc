@@ -67,9 +67,31 @@ void OnroadWindow::offroadTransition(bool offroad) {
 // ***** onroad widgets *****
 
 OnroadAlerts::OnroadAlerts(QWidget *parent) : QWidget(parent) {
-  for (auto &kv : sound_map) {
-    auto path = QUrl::fromLocalFile(kv.second.first);
-    sounds[kv.first].setSource(path);
+  std::tuple<AudibleAlert, QString, bool> sound_list[] = {
+    {AudibleAlert::CHIME_DISENGAGE, "../assets/sounds/disengaged.wav", false},
+    {AudibleAlert::CHIME_ENGAGE, "../assets/sounds/engaged.wav", false},
+    {AudibleAlert::CHIME_WARNING1, "../assets/sounds/warning_1.wav", false},
+    {AudibleAlert::CHIME_WARNING2, "../assets/sounds/warning_2.wav", false},
+    {AudibleAlert::CHIME_WARNING2_REPEAT, "../assets/sounds/warning_2.wav", false},
+    {AudibleAlert::CHIME_WARNING_REPEAT, "../assets/sounds/warning_repeat.wav", false},
+    {AudibleAlert::CHIME_ERROR, "../assets/sounds/error.wav", false},
+    {AudibleAlert::CHIME_PROMPT, "../assets/sounds/error.wav", false},
+    {AudibleAlert::CHIME_READY, "../assets/sounds/ready.wav", false},
+    {AudibleAlert::CHIME_DOOR_OPEN, "../assets/sounds/dooropen.wav", false},
+    {AudibleAlert::CHIME_GEAR_DRIVE, "../assets/sounds/geardrive.wav", false},
+    {AudibleAlert::CHIME_LANE_CHANGE, "../assets/sounds/lanechange.wav", false},
+    {AudibleAlert::CHIME_LANE_DEPARTURE, "../assets/sounds/lanedeparture.wav", false},
+    {AudibleAlert::CHIME_ROAD_WARNING, "../assets/sounds/roadwarning.wav", false},
+    {AudibleAlert::CHIME_SEAT_BELT, "../assets/sounds/seatbelt.wav", false},
+    {AudibleAlert::CHIME_VIEW_UNCERTAIN, "../assets/sounds/viewuncertain.wav", false},
+    {AudibleAlert::CHIME_MODE_OPENPILOT, "../assets/sounds/modeopenpilot.wav", false},
+    {AudibleAlert::CHIME_MODE_DISTCURV, "../assets/sounds/modedistcurv.wav", false},
+    {AudibleAlert::CHIME_MODE_DISTANCE, "../assets/sounds/modedistance.wav", false},
+    {AudibleAlert::CHIME_MODE_ONEWAY, "../assets/sounds/modeoneway.wav", false},
+    {AudibleAlert::CHIME_MODE_MAPONLY, "../assets/sounds/modemaponly.wav", false}};
+  for (auto &[alert, fn, loops] : sound_list) {
+    sounds[alert].first.setSource(QUrl::fromLocalFile(fn));
+    sounds[alert].second = loops ? QSoundEffect::Infinite : 0;
   }
 }
 
@@ -140,24 +162,23 @@ void OnroadAlerts::updateAlert(const QString &t1, const QString &t2, float blink
 }
 
 void OnroadAlerts::playSound(AudibleAlert alert) {
-  int loops = sound_map[alert].second ? QSoundEffect::Infinite : 0;
-  sounds[alert].setLoopCount(loops);
-  sounds[alert].setVolume(volume);
-  sounds[alert].play();
+  auto &[sound, loops] = sounds[alert];
+  sound.setLoopCount(loops);
+  sound.setVolume(volume);
+  sound.play();
 }
 
 void OnroadAlerts::stopSounds() {
   for (auto &kv : sounds) {
     // Only stop repeating sounds
-    if (kv.second.loopsRemaining() == QSoundEffect::Infinite) {
-      kv.second.stop();
+    auto &[sound, loops] = kv.second;
+    if (sound.loopsRemaining() == QSoundEffect::Infinite) {
+      sound.stop();
     }
   }
 }
 
 void OnroadAlerts::paintEvent(QPaintEvent *event) {
-  QPainter p(this);
-
   if (alert_size == cereal::ControlsState::AlertSize::NONE) {
     return;
   }
@@ -168,6 +189,8 @@ void OnroadAlerts::paintEvent(QPaintEvent *event) {
   };
   int h = alert_sizes[alert_size];
   QRect r = QRect(0, height() - h, width(), h);
+
+  QPainter p(this);
 
   // draw background + gradient
   p.setPen(Qt::NoPen);

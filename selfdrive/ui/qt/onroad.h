@@ -29,34 +29,9 @@ private:
   void updateAlert(const QString &t1, const QString &t2, float blink_rate,
                    const std::string &type, cereal::ControlsState::AlertSize size, AudibleAlert sound);
 
-  std::map<AudibleAlert, std::pair<QString, bool>> sound_map {
-    // AudibleAlert, (file path, inf loop)
-    {AudibleAlert::CHIME_DISENGAGE, {"../assets/sounds/disengaged.wav", false}},
-    {AudibleAlert::CHIME_ENGAGE, {"../assets/sounds/engaged.wav", false}},
-    {AudibleAlert::CHIME_WARNING1, {"../assets/sounds/warning_1.wav", false}},
-    {AudibleAlert::CHIME_WARNING2, {"../assets/sounds/warning_2.wav", false}},
-    {AudibleAlert::CHIME_WARNING2_REPEAT, {"../assets/sounds/warning_2.wav", false}},
-    {AudibleAlert::CHIME_WARNING_REPEAT, {"../assets/sounds/warning_repeat.wav", false}},
-    {AudibleAlert::CHIME_ERROR, {"../assets/sounds/error.wav", false}},
-    {AudibleAlert::CHIME_PROMPT, {"../assets/sounds/error.wav", false}},
-    {AudibleAlert::CHIME_READY, {"../assets/sounds/ready.wav", false}},
-    {AudibleAlert::CHIME_DOOR_OPEN, {"../assets/sounds/dooropen.wav", false}},
-    {AudibleAlert::CHIME_GEAR_DRIVE, {"../assets/sounds/geardrive.wav", false}},
-    {AudibleAlert::CHIME_LANE_CHANGE, {"../assets/sounds/lanechange.wav", false}},
-    {AudibleAlert::CHIME_LANE_DEPARTURE, {"../assets/sounds/lanedeparture.wav", false}},
-    {AudibleAlert::CHIME_ROAD_WARNING, {"../assets/sounds/roadwarning.wav", false}},
-    {AudibleAlert::CHIME_SEAT_BELT, {"../assets/sounds/seatbelt.wav", false}},
-    {AudibleAlert::CHIME_VIEW_UNCERTAIN, {"../assets/sounds/viewuncertain.wav", false}},
-    {AudibleAlert::CHIME_MODE_OPENPILOT, {"../assets/sounds/modeopenpilot.wav", false}},
-    {AudibleAlert::CHIME_MODE_DISTCURV, {"../assets/sounds/modedistcurv.wav", false}},
-    {AudibleAlert::CHIME_MODE_DISTANCE, {"../assets/sounds/modedistance.wav", false}},
-    {AudibleAlert::CHIME_MODE_ONEWAY, {"../assets/sounds/modeoneway.wav", false}},
-    {AudibleAlert::CHIME_MODE_MAPONLY, {"../assets/sounds/modemaponly.wav", false}}
-  };
-
   QColor bg;
   float volume = Hardware::MIN_VOLUME;
-  std::map<AudibleAlert, QSoundEffect> sounds;
+  std::map<AudibleAlert, std::pair<QSoundEffect, int>> sounds;
   float blinking_rate = 0;
   QString text1, text2;
   std::string alert_type;
