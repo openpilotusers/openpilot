@@ -135,7 +135,10 @@ class CarController():
     self.mad_mode_enabled = self.params.get_bool("MadModeEnabled")
     self.ldws_fix = self.params.get_bool("LdwsCarFix")
 
-    self.leadcar_status = 0
+    self.steer_mode = ""
+    self.mdps_status = ""
+    self.lkas_switch = ""
+    self.leadcar_status = ""
 
     self.longcontrol = CP.openpilotLongitudinalControl
     #self.scc_live is true because CP.radarOffCan is False
@@ -365,12 +368,35 @@ class CarController():
 
     run_speed_ctrl = self.opkr_variablecruise and CS.acc_active and (CS.out.cruiseState.modeSel > 0)
     if not run_speed_ctrl:
+      if CS.out.cruiseState.modeSel == 0:
+        self.steer_mode = "오파모드"
+      elif CS.out.cruiseState.modeSel == 1:
+        self.steer_mode = "차간+커브"
+      elif CS.out.cruiseState.modeSel == 2:
+        self.steer_mode = "차간ONLY"
+      elif CS.out.cruiseState.modeSel == 3:
+        self.steer_mode = "편도1차선"
+      elif CS.out.cruiseState.modeSel == 4:
+        self.steer_mode = "맵감속ONLY"
+      if CS.out.steerWarning == 0:
+        self.mdps_status = "정상"
+      elif CS.out.steerWarning == 1:
+        self.mdps_status = "오류"
+      if CS.lkas_button_on == 0:
+        self.lkas_switch = "OFF"
+      elif CS.lkas_button_on == 1:
+        self.lkas_switch = "ON"
+      else:
+        self.lkas_switch = "-"
       if self.cruise_gap != CS.cruiseGapSet:
         self.cruise_gap = CS.cruiseGapSet
-      self.leadcar_status = 1 if CS.lead_distance < 149 else 0
+      if CS.lead_distance < 149:
+        self.leadcar_status = "O"
+      else:
+        self.leadcar_status = "-"
 
-      str_log2 = 'MODE={}  MDPS={}  LKAS={}  CSG={:1.0f}  LEAD={}  FR={:03.0f}'.format(CS.out.cruiseState.modeSel, \
-       CS.out.steerWarning, CS.lkas_button_on, self.cruise_gap, self.leadcar_status, self.timer1.sampleTime())
+      str_log2 = 'MODE={:s}  MDPS={:s}  LKAS={:s}  CSG={:1.0f}  LEAD={:s}  FR={:03.0f}'.format(self.steer_mode, \
+       self.mdps_status, self.lkas_switch, self.cruise_gap, self.leadcar_status, self.timer1.sampleTime())
       trace1.printf2( '{}'.format( str_log2 ) )
 
     if pcm_cancel_cmd and self.longcontrol:
