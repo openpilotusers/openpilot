@@ -226,6 +226,8 @@ class CarState(CarStateBase):
     elif self.safety_sign > 29 and self.safety_block_remain_dist < 255.:
       ret.safetySign = self.safety_sign
       ret.safetyDist = self.safety_dist
+    elif self.safety_sign > 29 and self.safety_dist < 600.:
+      ret.safetyDist = self.safety_dist
     else:
       ret.safetySign = 0
       ret.safetyDist = 0
