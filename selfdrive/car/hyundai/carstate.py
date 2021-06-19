@@ -50,6 +50,7 @@ class CarState(CarStateBase):
     self.safety_dist = 0
     self.safety_block_remain_dist = 0
     self.is_highway = False
+    self.on_speed_control = False
 
   def update(self, cp, cp2, cp_cam):
     cp_mdps = cp2 if self.CP.mdpsBus == 1 else cp
@@ -223,14 +224,19 @@ class CarState(CarStateBase):
     if self.safety_sign > 29 and self.safety_dist < cam_distance_calc*consider_speed*ret.vEgo*CV.MS_TO_KPH:
       ret.safetySign = self.safety_sign
       ret.safetyDist = self.safety_dist
+      self.on_speed_control = True
     elif self.safety_sign > 29 and self.safety_block_remain_dist < 255.:
       ret.safetySign = self.safety_sign
       ret.safetyDist = self.safety_dist
+      self.on_speed_control = True
     elif self.safety_sign > 29 and self.safety_dist < 600.:
+      ret.safetySign = self.safety_sign
       ret.safetyDist = self.safety_dist
+      self.on_speed_control = False
     else:
       ret.safetySign = 0
       ret.safetyDist = 0
+      self.on_speed_control = False
 
     self.cruiseGapSet = cp_scc.vl["SCC11"]['TauGapSet']
     ret.cruiseGapSet = self.cruiseGapSet
