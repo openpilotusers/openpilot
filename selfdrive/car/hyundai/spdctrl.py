@@ -51,11 +51,12 @@ class Spdctrl(SpdController):
         if self.target_speed_camera <= 29:
             self.map_enable = False
             self.target_speed = 0
-        elif self.target_speed_camera > 29:
+        elif self.target_speed_camera > 29 and CS.on_speed_control:
             self.target_speed = self.target_speed_camera
             self.map_enable = True
         else:
             self.target_speed = 0
+            self.map_enable = False
 
         lead_set_speed = int(round(self.cruise_set_speed_kph))
         lead_wait_cmd = 300
