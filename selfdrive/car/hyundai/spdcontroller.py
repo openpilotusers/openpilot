@@ -107,6 +107,8 @@ class SpdController():
 
         self.map_spd_enable = False
         self.map_spd_camera = 0
+        self.map_enabled = False
+        self.second = 0
 
     def reset(self):
         self.v_model = 0
@@ -335,8 +337,22 @@ class SpdController():
         delta = int(round(set_speed)) - int(CS.VSetDis)
         dec_step_cmd = 1
 
-        self.map_spd_camera = CS.out.safetySign
-        self.map_spd_enable = True if self.map_spd_camera > 29. else False
+        self.second += 1
+        if self.second > 100:
+            self.map_enabled = Params().get_bool("OpkrMapEnable")
+            self.second = 0
+
+        if self.map_enabled:
+            camspeed = Params().get("LimitSetSpeedCamera", encoding="utf8")
+            if camspeed is not None:
+                self.map_spd_camera = int(float(camspeed.rstrip('\n')))
+                self.map_spd_enable = True if self.map_spd_camera > 29 > else False
+            else:
+                self.map_spd_enable = False
+                self.map_spd_camera = 0
+        else:
+            self.map_spd_camera = CS.out.safetySign
+            self.map_spd_enable = True if self.map_spd_camera > 29. else False
 
         if self.long_curv_timer < long_wait_cmd:
             pass

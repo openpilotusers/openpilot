@@ -34,6 +34,8 @@ class SpdctrlRelaxed(SpdController):
         self.hesitant_timer = 0
         self.map_decel_only = False
         self.map_spdlimit_offset = int(Params().get("OpkrSpeedLimitOffset", encoding="utf8"))
+        self.map_enabled = False
+        self.second = 0
 
     def update_lead(self, sm, CS, dRel, yRel, vRel, CC):
 
@@ -46,12 +48,19 @@ class SpdctrlRelaxed(SpdController):
         yRelef = plan.yRel2 #EON Lead
         vRelef = plan.vRel2 * 3.6 + 0.5 #EON Lead
         lead2_status = plan.status2
-        self.target_speed_camera = CS.out.safetySign + round(CS.out.safetySign*0.01*self.map_spdlimit_offset)
+        self.second += 1
+        if self.second > 100:
+            self.map_enabled = Params().get_bool("OpkrMapEnable")
+            self.second = 0
+        if self.map_enabled:
+            self.target_speed_camera = plan.targetSpeedCamera + round(plan.targetSpeedCamera*0.01*self.map_spdlimit_offset)
+        else:
+            self.target_speed_camera = CS.out.safetySign + round(CS.out.safetySign*0.01*self.map_spdlimit_offset)
         
         if self.target_speed_camera <= 29:
             self.map_enable = False
             self.target_speed = 0
-        elif self.target_speed_camera > 29 and CS.on_speed_control:
+        elif self.target_speed_camera > 29 and (plan.onSpeedControl if self.map_enabled else CS.on_speed_control):
             self.target_speed = self.target_speed_camera
             self.map_enable = True
         else:
