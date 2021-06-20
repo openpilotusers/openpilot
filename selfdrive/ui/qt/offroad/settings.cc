@@ -2,6 +2,8 @@
 
 #include <cassert>
 #include <string>
+
+#include <QDebug>
 #include <QProcess>
 
 #ifndef QCOM
@@ -17,7 +19,6 @@
 #include "selfdrive/hardware/hw.h"
 #include "selfdrive/ui/qt/widgets/controls.h"
 #include "selfdrive/ui/qt/widgets/input.h"
-#include "selfdrive/ui/qt/widgets/offroad_alerts.h"
 #include "selfdrive/ui/qt/widgets/scrollview.h"
 #include "selfdrive/ui/qt/widgets/ssh_keys.h"
 #include "selfdrive/ui/qt/widgets/toggle.h"
@@ -134,14 +135,14 @@ DevicePanel::DevicePanel(QWidget* parent) : QWidget(parent) {
   main_layout->addWidget(new LabelControl("Serial", serial));
 
   // offroad-only buttons
-  QList<ButtonControl*> offroad_btns;
 
-  offroad_btns.append(new ButtonControl("운전자 영상", "미리보기",
-                                        "운전자 모니터링 카메라를 미리 보고 장치 장착 위치를 최적화하여 최상의 운전자 모니터링 환경을 제공하십시오. (차량이 꺼져 있어야 합니다.)",
-                                        [=]() { emit showDriverView(); }, "", this));
+  auto dcamBtn = new ButtonControl("운전자 영상", "미리보기",
+                                        "운전자 모니터링 카메라를 미리 보고 장치 장착 위치를 최적화하여 최상의 운전자 모니터링 환경을 제공하십시오. (차량이 꺼져 있어야 합니다.)");
+  connect(dcamBtn, &ButtonControl::released, [=]() { emit showDriverView(); });
 
   QString resetCalibDesc = "오픈파일럿을 사용하려면 장치를 왼쪽 또는 오른쪽으로 4°, 위 또는 아래로 5° 이내에 장착해야 합니다. 오픈파일럿이 지속적으로 보정되고 있으므로 재설정할 필요가 거의 없습니다.";
-  ButtonControl *resetCalibBtn = new ButtonControl("캘리브레이션정보", "확인", resetCalibDesc, [=]() {
+  auto resetCalibBtn = new ButtonControl("캘리브레이션정보", "확인", resetCalibDesc);
+  connect(resetCalibBtn, &ButtonControl::released, [=]() {
     QString desc = "[기준값: L/R 4°및 UP/DN 5°이내]";
     std::string calib_bytes = Params().get("CalibrationParams");
     if (!calib_bytes.empty()) {
@@ -163,7 +164,7 @@ DevicePanel::DevicePanel(QWidget* parent) : QWidget(parent) {
     if (ConfirmationDialog::confirm(desc)) {
       //Params().remove("CalibrationParams");
     }
-  }, "", this);
+  });
   connect(resetCalibBtn, &ButtonControl::showDescription, [=]() {
     QString desc = resetCalibDesc;
     std::string calib_bytes = Params().get("CalibrationParams");
@@ -185,26 +186,31 @@ DevicePanel::DevicePanel(QWidget* parent) : QWidget(parent) {
     }
     resetCalibBtn->setDescription(desc);
   });
-  offroad_btns.append(resetCalibBtn);
 
-  offroad_btns.append(new ButtonControl("트레이닝가이드 보기", "다시보기",
-                                        "오픈파일럿에 대한 규칙, 기능, 제한내용 등을 확인하세요.", [=]() {
-    if (ConfirmationDialog::confirm("트레이닝 가이드를 다시 확인하시겠습니까?", this)) {
-      Params().remove("CompletedTrainingVersion");
-      emit reviewTrainingGuide();
-    }
-  }, "", this));
+  ButtonControl *retrainingBtn = nullptr;
+  if (!params.getBool("Passive")) {
+    retrainingBtn = new ButtonControl("트레이닝가이드 보기", "다시보기", "오픈파일럿에 대한 규칙, 기능, 제한내용 등을 확인하세요.");
+    connect(retrainingBtn, &ButtonControl::released, [=]() {
+      if (ConfirmationDialog::confirm("트레이닝 가이드를 다시 확인하시겠습니까?", this)) {
+        Params().remove("CompletedTrainingVersion");
+        emit reviewTrainingGuide();
+      }
+    });
+  }
 
-  offroad_btns.append(new ButtonControl(getBrand() + " 제거", "제거", "", [=]() {
+  auto uninstallBtn = new ButtonControl(getBrand() + " 제거", "제거");
+  connect(uninstallBtn, &ButtonControl::released, [=]() {
     if (ConfirmationDialog::confirm("제거하시겠습니까?", this)) {
       Params().putBool("DoUninstall", true);
     }
-  }, "", this));
+  });
 
-  for(auto &btn : offroad_btns) {
-    main_layout->addWidget(horizontal_line());
-    QObject::connect(parent, SIGNAL(offroadTransition(bool)), btn, SLOT(setEnabled(bool)));
-    main_layout->addWidget(btn);
+  for (auto btn : {dcamBtn, resetCalibBtn, retrainingBtn, uninstallBtn}) {
+    if (btn) {
+      main_layout->addWidget(horizontal_line());
+      connect(parent, SIGNAL(offroadTransition(bool)), btn, SLOT(setEnabled(bool)));
+      main_layout->addWidget(btn);
+    }
   }
 
   main_layout->addWidget(horizontal_line());
@@ -322,7 +328,8 @@ SoftwarePanel::SoftwarePanel(QWidget* parent) : QWidget(parent) {
   osVersionLbl = new LabelControl("OS Version");
   versionLbl = new LabelControl("Version");
   lastUpdateLbl = new LabelControl("Last Update Check", "", "The last time openpilot successfully checked for an update. The updater only runs while the car is off.");
-  updateBtn = new ButtonControl("Check for Update", "", "", [=]() {
+  updateBtn = new ButtonControl("Check for Update", "");
+  connect(updateBtn, &ButtonControl::released, [=]() {
     if (params.getBool("IsOffroad")) {
       const QString paramsPath = QString::fromStdString(params.getParamsPath());
       fs_watch->addPath(paramsPath + "/d/LastUpdateTime");
@@ -331,7 +338,7 @@ SoftwarePanel::SoftwarePanel(QWidget* parent) : QWidget(parent) {
       updateBtn->setEnabled(false);
     }
     std::system("pkill -1 -f selfdrive.updated");
-  }, "", this);
+  });
 
   QVBoxLayout *main_layout = new QVBoxLayout(this);
   QWidget *widgets[] = {versionLbl, gitRemoteLbl, gitBranchLbl, lastUpdateLbl, updateBtn};
@@ -417,7 +424,7 @@ void SoftwarePanel::updateLabels() {
   gitRemoteLbl->setText(QString::fromStdString(params.get("GitRemote").substr(19)));
   gitBranchLbl->setText(QString::fromStdString(params.get("GitBranch")));
   gitCommitLbl->setText(QString::fromStdString(params.get("GitCommit")).left(10));
-  osVersionLbl->setText(QString::fromStdString(Hardware::get_os_version()));
+  osVersionLbl->setText(QString::fromStdString(Hardware::get_os_version()).trimmed());
 }
 
 QWidget * network_panel(QWidget * parent) {
@@ -429,12 +436,14 @@ QWidget * network_panel(QWidget * parent) {
   layout->addWidget(new OpenpilotView());
   layout->addWidget(horizontal_line());
   // wifi + tethering buttons
-  layout->addWidget(new ButtonControl("WiFi 설정", "열기", "",
-                                      [=]() { HardwareEon::launch_wifi(); }));
+  auto wifiBtn = new ButtonControl("WiFi 설정", "열기");
+  QObject::connect(wifiBtn, &ButtonControl::released, [=]() { HardwareEon::launch_wifi(); });
+  layout->addWidget(wifiBtn);
   layout->addWidget(horizontal_line());
 
-  layout->addWidget(new ButtonControl("테더링 설정", "열기", "",
-                                      [=]() { HardwareEon::launch_tethering(); }));
+  auto tetheringBtn = new ButtonControl("테더링 설정", "열기");
+  QObject::connect(tetheringBtn, &ButtonControl::released, [=]() { HardwareEon::launch_tethering(); });
+  layout->addWidget(tetheringBtn);
   layout->addWidget(horizontal_line());
 
   layout->addWidget(new HotspotOnBootToggle());

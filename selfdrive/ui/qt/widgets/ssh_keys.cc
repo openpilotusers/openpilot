@@ -2,15 +2,17 @@
 
 #include <QHBoxLayout>
 #include <QNetworkReply>
-#include <QProcess>
-#include <QAction>
-#include <QMenu>
-#include <QSoundEffect>
+
+#include <QProcess> // opkr
+#include <QAction> // opkr
+#include <QMenu> // opkr
+#include <QSoundEffect> // opkr
 
 #include "selfdrive/common/params.h"
 #include "selfdrive/ui/qt/api.h"
 #include "selfdrive/ui/qt/widgets/input.h"
-#include "selfdrive/ui/ui.h"
+
+#include "selfdrive/ui/ui.h" // opkr
 
 SshControl::SshControl() : AbstractControl("SSH 키 설정", "경고: 이렇게 하면 GitHub 설정의 모든 공개 키에 대한 SSH 액세스 권한이 부여됩니다. 사용자 이외의 GitHub 사용자 이름을 입력하지 마십시오. 콤마 직원은 절대 GitHub 사용자 이름을 추가하라는 요청을 하지 않습니다.", "") {
 
