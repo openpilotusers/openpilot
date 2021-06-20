@@ -346,7 +346,7 @@ class SpdController():
             camspeed = Params().get("LimitSetSpeedCamera", encoding="utf8")
             if camspeed is not None:
                 self.map_spd_camera = int(float(camspeed.rstrip('\n')))
-                self.map_spd_enable = True if self.map_spd_camera > 29 > else False
+                self.map_spd_enable = True if self.map_spd_camera > 29 else False
             else:
                 self.map_spd_enable = False
                 self.map_spd_camera = 0
