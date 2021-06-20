@@ -94,8 +94,13 @@ void HomeWindow::mousePressEvent(QMouseEvent* e) {
       QUIState::ui_state.scene.map_on_overlay = false;
       Params().put("OpkrMapEnable", "1", 1);
     } else {
+      QProcess::execute("pkill com.skt.wifiagent.tmap");
       QProcess::execute("pkill com.skt.tmap.ku");
       QProcess::execute("pkill com.opkr.maphack");
+      QProcess::execute("pkill com.skt.wifiagent.tmap");
+      QProcess::execute("pkill com.skt.tmap.ku");
+      QProcess::execute("pkill com.skt.tmap.ku");
+      QProcess::execute("pkill com.skt.tmap.ku");
       QProcess::execute("pkill com.skt.tmap.ku");
       QProcess::execute("pkill com.skt.tmap.ku");
       QUIState::ui_state.scene.map_on_top = false;
