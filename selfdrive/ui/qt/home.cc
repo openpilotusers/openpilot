@@ -4,6 +4,7 @@
 #include <QHBoxLayout>
 #include <QMouseEvent>
 #include <QVBoxLayout>
+#include <QProcess> // opkr
 
 #include "selfdrive/common/params.h"
 #include "selfdrive/common/swaglog.h"
