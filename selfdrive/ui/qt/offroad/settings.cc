@@ -493,6 +493,7 @@ QWidget * user_panel(QWidget * parent) {
   layout->addWidget(new MonitorEyesThreshold());
   layout->addWidget(new NormalEyesThreshold());
   layout->addWidget(new BlinkThreshold());
+  layout->addWidget(new ApksEnableToggle());
   layout->addWidget(new RunNaviOnBootToggle());
 
   layout->addWidget(horizontal_line());
@@ -530,7 +531,6 @@ QWidget * user_panel(QWidget * parent) {
   layout->addWidget(new ComIssueToggle());
   layout->addWidget(new WhitePandaSupportToggle());
   layout->addWidget(new SteerWarningFixToggle());
-  layout->addWidget(new ApksEnableToggle());
   const char* cal_ok = "cp -f /data/openpilot/selfdrive/assets/addon/param/CalibrationParams /data/params/d/";
   layout->addWidget(new ButtonControl("캘리브레이션 강제 활성화", "실행", "실주행으로 캘리브레이션을 설정하지 않고 이온을 초기화 한경우 인게이지 확인용도로 캘리브레이션을 강제 설정합니다.",
                                       [=]() { 
