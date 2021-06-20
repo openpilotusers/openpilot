@@ -195,6 +195,8 @@ class Controls:
     self.live_sr = params.get_bool("OpkrLiveSteerRatio")
     
     self.model_long_alert_prev = True
+    self.second = 0.0
+    self.map_enabled = False
 
   def auto_enable(self, CS):
     if self.state != State.enabled and CS.vEgo >= 3 * CV.KPH_TO_MS and CS.gearShifter == 2 and self.sm['liveCalibration'].calStatus != Calibration.UNCALIBRATED:
@@ -272,11 +274,16 @@ class Controls:
     if not self.sm['liveParameters'].valid:
       self.events.add(EventName.vehicleModelInvalid)
 
+    self.second += DT_CTRL
+    if self.second > 1.0:
+      self.map_enabled = Params().get_bool("OpkrMapEnable")
+      self.second = 0.0
     if len(self.sm['radarState'].radarErrors):
       self.events.add(EventName.radarFault)
     elif not self.sm.valid["pandaState"]:
       self.events.add(EventName.usbError)
-    elif not self.sm.all_alive_and_valid() and self.sm['pandaState'].pandaType != PandaType.whitePanda and not self.commIssue_ignored:
+    elif not self.sm.all_alive_and_valid() and self.sm['pandaState'].pandaType != PandaType.whitePanda and \
+     not self.commIssue_ignored and not self.map_enabled:
       self.events.add(EventName.commIssue)
       if not self.logged_comm_issue:
         cloudlog.error(f"commIssue - valid: {self.sm.valid} - alive: {self.sm.alive}")
@@ -693,8 +700,13 @@ class Controls:
     controlsState.canErrorCounter = self.can_error_counter
     controlsState.alertTextMsg1 = self.log_alertTextMsg1
     controlsState.alertTextMsg2 = self.log_alertTextMsg2
-    controlsState.limitSpeedCamera = float(CS.safetySign)
-    controlsState.limitSpeedCameraDist = float(CS.safetyDist)
+    if self.map_enabled:
+      controlsState.limitSpeedCamera = float(self.sm['longitudinalPlan'].targetSpeedCamera)
+      controlsState.limitSpeedCameraDist = float(self.sm['longitudinalPlan'].targetSpeedCameraDist)
+      controlsState.mapSign = float(self.sm['longitudinalPlan'].mapSign)
+    else:
+      controlsState.limitSpeedCamera = float(CS.safetySign)
+      controlsState.limitSpeedCameraDist = float(CS.safetyDist)
     controlsState.lateralControlMethod = int(self.lateral_control_method)
     controlsState.steerRatio = float(self.steerRatio_to_send)
 

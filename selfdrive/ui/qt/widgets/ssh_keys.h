@@ -407,6 +407,30 @@ public:
   }
 };
 
+class RunNaviOnBootToggle : public ToggleControl {
+  Q_OBJECT
+
+public:
+  RunNaviOnBootToggle() : ToggleControl("부팅 후 네비 자동 실행", "부팅후 네비게이션(티맵)을 자동 실행합니다.", "../assets/offroad/icon_shell.png", Params().getBool("OpkrRunNaviOnBoot")) {
+    QObject::connect(this, &RunNaviOnBootToggle::toggleFlipped, [=](int state) {
+      char value = state ? '1' : '0';
+      Params().put("OpkrRunNaviOnBoot", &value, 1);
+    });
+  }
+};
+
+class ApksEnableToggle : public ToggleControl {
+  Q_OBJECT
+
+public:
+  ApksEnableToggle() : ToggleControl("APKs 사용", "어플 사용을 위해 apk환경을 활성화합니다. 활성화시 apk 파일들(소프트키, 티맵, 믹스플로러 등)스이 자동 인스톨 됩니다.", "../assets/offroad/icon_shell.png", Params().getBool("OpkrApksEnable")) {
+    QObject::connect(this, &ApksEnableToggle::toggleFlipped, [=](int state) {
+      char value = state ? '1' : '0';
+      Params().put("OpkrApksEnable", &value, 1);
+    });
+  }
+};
+
 // 오픈파일럿 미리보기
 class OpenpilotView : public AbstractControl {
   Q_OBJECT

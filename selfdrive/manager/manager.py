@@ -12,7 +12,8 @@ from common.basedir import BASEDIR
 from common.params import Params, ParamKeyType
 from common.text_window import TextWindow
 from selfdrive.boardd.set_time import set_time
-from selfdrive.hardware import HARDWARE, PC, TICI
+from selfdrive.hardware import EON, HARDWARE, PC, TICI
+from selfdrive.hardware.eon.apk import (pm_apply_packages, update_apks)
 from selfdrive.manager.helpers import unblock_stdout
 from selfdrive.manager.process import ensure_running
 from selfdrive.manager.process_config import managed_processes
@@ -96,6 +97,7 @@ def manager_init():
     ("OpkrSpeedLimitOffset", "0"),
     ("LimitSetSpeedCamera", "0"),
     ("LimitSetSpeedCameraDist", "0"),
+    ("OpkrMapSign", "0"),
     ("OpkrLiveSteerRatio", "1"),
     ("OpkrVariableSteerMax", "1"),
     ("OpkrVariableSteerDelta", "0"),
@@ -133,6 +135,8 @@ def manager_init():
     ("OpkrFanSpeedGain", "0"),
     ("WhitePandaSupport", "0"),
     ("SteerWarningFix", "0"),
+    ("OpkrRunNaviOnBoot", "0"),
+    ("OpkrApksEnable", "0"),
   ]
   if not PC:
     default_params.append(("LastUpdateTime", datetime.datetime.utcnow().isoformat().encode('utf8')))
@@ -153,6 +157,9 @@ def manager_init():
 
   if params.get("Passive") is None:
     raise Exception("Passive must be set to continue")
+
+  if EON and params.get_bool("OpkrApksEnable"):
+    update_apks(show_spinner=True)
 
   os.umask(0)  # Make sure we can create files with 777 permissions
 
@@ -191,6 +198,13 @@ def manager_init():
 
   if comma_remote and not (os.getenv("NOLOG") or os.getenv("NOCRASH") or PC):
     crash.init()
+
+  # ensure shared libraries are readable by apks
+  if EON and params.get_bool("OpkrApksEnable"):
+    os.chmod(BASEDIR, 0o755)
+    os.chmod("/dev/shm", 0o777)
+    os.chmod(os.path.join(BASEDIR, "cereal"), 0o755)
+
   crash.bind_user(id=dongle_id)
   crash.bind_extra(dirty=dirty, origin=origin, branch=branch, commit=commit,
                    device=HARDWARE.get_device_type())
@@ -203,6 +217,9 @@ def manager_prepare():
 
 
 def manager_cleanup():
+  if EON and params.get_bool("OpkrApksEnable"):
+    pm_apply_packages('disable')
+
   for p in managed_processes.values():
     p.stop()
 
@@ -225,6 +242,9 @@ def manager_thread():
     ignore.append("pandad")
   if os.getenv("BLOCK") is not None:
     ignore += os.getenv("BLOCK").split(",")
+
+  if EON and params.get_bool("OpkrApksEnable"):
+    pm_apply_packages('enable')
 
   ensure_running(managed_processes.values(), started=False, not_run=ignore)
 

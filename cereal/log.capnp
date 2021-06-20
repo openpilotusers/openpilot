@@ -549,6 +549,7 @@ struct ControlsState @0x97ff69c53601abf1 {
   limitSpeedCameraDist @64 :Float32;
   steerRatio @65 :Float32;
   longPlanSource  @66 :UInt8;
+  mapSign @67 :Float32;
 
   lateralControlState :union {
     indiState @52 :LateralINDIState;
@@ -799,6 +800,10 @@ struct LongitudinalPlan @0xe00b5b3eba12876c {
   yRel2 @36 :Float32;
   vRel2 @37 :Float32;
   status2 @38 :Bool;
+  targetSpeedCamera @39 :Float32;
+  targetSpeedCameraDist @40 :Float32;
+  mapSign @41 :Float32;
+  onSpeedControl @42 :Bool;
 
   enum LongitudinalPlanSource {
     cruise @0;
