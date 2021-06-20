@@ -101,8 +101,12 @@ void HomeWindow::mousePressEvent(QMouseEvent* e) {
       QProcess::execute("pkill com.skt.tmap.ku");
       QTimer::singleShot(1000, []() {
         QProcess::execute("pkill com.skt.tmap.ku");
+        QProcess::execute("pkill com.skt.tmap.ku");
+        QProcess::execute("pkill com.skt.tmap.ku");
       });
-      QTimer::singleShot(500, []() {
+      QTimer::singleShot(2000, []() {
+        QProcess::execute("pkill com.skt.tmap.ku");
+        QProcess::execute("pkill com.skt.tmap.ku");
         QProcess::execute("pkill com.skt.tmap.ku");
       });
       QUIState::ui_state.scene.map_on_top = false;
