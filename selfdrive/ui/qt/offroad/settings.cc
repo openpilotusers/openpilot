@@ -488,16 +488,16 @@ QWidget * user_panel(QWidget * parent) {
   layout->addWidget(new RecordCount());
   layout->addWidget(new RecordQuality());
   const char* record_del = "rm -f /storage/emulated/0/videos/*";
-  QWidget *recorddelbtn = new ButtonControl("녹화파일 전부 삭제", "실행");
-  connect(recorddelbtn, &ButtonControl::released, [=]() {
+  auto recorddelbtn = new ButtonControl("녹화파일 전부 삭제", "실행");
+  QObject::connect(recorddelbtn, &ButtonControl::released, [=]() {
     if (ConfirmationDialog::confirm("저장된 녹화파일을 모두 삭제합니다. 진행하시겠습니까?")){
       std::system(record_del);
     }
   });
   layout->addWidget(recorddelbtn);
   const char* realdata_del = "rm -rf /storage/emulated/0/realdata/*";
-  QWidget *realdatadelbtn = new ButtonControl("주행로그 전부 삭제", "실행");
-  connect(realdatadelbtn, &ButtonControl::released, [=]() {
+  auto realdatadelbtn = new ButtonControl("주행로그 전부 삭제", "실행");
+  QObject::connect(realdatadelbtn, &ButtonControl::released, [=]() {
     if (ConfirmationDialog::confirm("저장된 주행로그를 모두 삭제합니다. 진행하시겠습니까?")){
       std::system(realdata_del);
     }
@@ -546,8 +546,8 @@ QWidget * user_panel(QWidget * parent) {
   layout->addWidget(new WhitePandaSupportToggle());
   layout->addWidget(new SteerWarningFixToggle());
   const char* cal_ok = "cp -f /data/openpilot/selfdrive/assets/addon/param/CalibrationParams /data/params/d/";
-  QWidget *calokbtn = new ButtonControl("캘리브레이션 강제 활성화", "실행");
-  connect(calokbtn, &ButtonControl::released, [=]() {
+  auto calokbtn = new ButtonControl("캘리브레이션 강제 활성화", "실행");
+  QObject::connect(calokbtn, &ButtonControl::released, [=]() {
     if (ConfirmationDialog::confirm("캘리브레이션을 강제로 설정합니다. 인게이지 확인용이니 실 주행시에는 초기화 하시기 바랍니다.")){
       std::system(cal_ok);
     }
@@ -567,8 +567,8 @@ QWidget * user_panel(QWidget * parent) {
   layout->addWidget(new MaxRateUp());
   layout->addWidget(new MaxRateDown());
   const char* p_edit_go = "/data/openpilot/p_edit.sh ''";
-  QWidget *peditbtn = new ButtonControl("판다값 변경 적용", "실행");
-  connect(peditbtn, &ButtonControl::released, [=]() {
+  auto peditbtn = new ButtonControl("판다값 변경 적용", "실행");
+  QObject::connect(peditbtn, &ButtonControl::released, [=]() {
     if (ConfirmationDialog::confirm("변경된 판다값을 적용합니다. 진행하시겠습니까? 자동 재부팅됩니다.")){
       std::system(p_edit_go);
     }
