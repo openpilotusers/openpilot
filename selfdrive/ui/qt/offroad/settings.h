@@ -45,10 +45,6 @@ private:
   LabelControl *versionLbl;
   LabelControl *lastUpdateLbl;
   ButtonControl *updateBtn;
-  ButtonControl *gitpullbtn;
-  ButtonControl *gitresetbtn;
-  ButtonControl *gitpullcanceltbtn;
-  ButtonControl *pandaflashingtbtn;
 
   Params params;
   QFileSystemWatcher *fs_watch;
