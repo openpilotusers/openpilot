@@ -95,6 +95,7 @@ void HomeWindow::mousePressEvent(QMouseEvent* e) {
       Params().put("OpkrMapEnable", "1", 1);
     } else {
       QProcess::execute("ps | grep com.skt.tmap.ku | awk '{print $2}' | xargs kill -9");
+      QProcess::execute("ps | grep com.opkr.maphack | awk '{print $2}' | xargs kill -9");
       QUIState::ui_state.scene.map_on_top = false;
       QUIState::ui_state.scene.map_on_overlay = false;
       QUIState::ui_state.scene.map_is_running = false;
