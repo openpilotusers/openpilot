@@ -96,6 +96,8 @@ void HomeWindow::mousePressEvent(QMouseEvent* e) {
     } else {
       QProcess::execute("pkill com.skt.tmap.ku");
       QProcess::execute("pkill com.opkr.maphack");
+      QProcess::execute("pkill com.skt.tmap.ku");
+      QProcess::execute("pkill com.skt.tmap.ku");
       QUIState::ui_state.scene.map_on_top = false;
       QUIState::ui_state.scene.map_on_overlay = false;
       QUIState::ui_state.scene.map_is_running = false;
