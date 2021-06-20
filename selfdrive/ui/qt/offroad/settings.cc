@@ -353,9 +353,9 @@ SoftwarePanel::SoftwarePanel(QWidget* parent) : QWidget(parent) {
 
   main_layout->addWidget(new GitHash());
   const char* gitpull = "/data/openpilot/gitpull.sh ''";
-  main_layout->addWidget(new ButtonControl("Git Pull", "실행", "리모트 Git에서 변경사항이 있으면 로컬에 반영 후 자동 재부팅 됩니다. 변경사항이 없으면 재부팅하지 않습니다. 로컬 파일이 변경된경우 리모트Git 내역을 반영 못할수도 있습니다. 참고바랍니다.",
+  main_layout->addWidget(new ButtonControl("Git Pull", "실행",
                                       [=]() { 
-                                        if (ConfirmationDialog::confirm("Git에서 변경사항 적용 후 자동 재부팅 됩니다. 없으면 재부팅하지 않습니다. 진행하시겠습니까?")){
+                                        if (ConfirmationDialog::confirm("Git에서 변경사항이 있는 경우만 적용 후 재부팅 합니다. 깃내역 미반영시 로컬변경사항을 확인하세요. 진행하시겠습니까?")){
                                           std::system(gitpull);
                                         }
                                       }));
@@ -363,7 +363,7 @@ SoftwarePanel::SoftwarePanel(QWidget* parent) : QWidget(parent) {
   main_layout->addWidget(horizontal_line());
 
   const char* git_reset = "/data/openpilot/git_reset.sh ''";
-  main_layout->addWidget(new ButtonControl("Git Reset", "실행", "로컬변경사항을 강제 초기화 후 리모트 최신 커밋내역을 적용합니다. 로컬 변경사항이 사라지니 주의 바랍니다.",
+  main_layout->addWidget(new ButtonControl("Git Reset", "실행",
                                       [=]() { 
                                         if (ConfirmationDialog::confirm("로컬변경사항을 강제 초기화 후 리모트Git의 최신 커밋내역을 적용합니다. 진행하시겠습니까?")){
                                           std::system(git_reset);
@@ -374,7 +374,7 @@ SoftwarePanel::SoftwarePanel(QWidget* parent) : QWidget(parent) {
   main_layout->addWidget(horizontal_line());
 
   const char* gitpull_cancel = "/data/openpilot/gitpull_cancel.sh ''";
-  main_layout->addWidget(new ButtonControl("Git Pull 취소", "실행", "Git Pull을 취소하고 이전상태로 되돌립니다. 커밋내역이 여러개인경우 최신커밋 바로 이전상태로 되돌립니다.",
+  main_layout->addWidget(new ButtonControl("Git Pull 취소", "실행",
                                       [=]() { 
                                         if (ConfirmationDialog::confirm("GitPull 이전 상태로 되돌립니다. 진행하시겠습니까?")){
                                           std::system(gitpull_cancel);
@@ -384,9 +384,9 @@ SoftwarePanel::SoftwarePanel(QWidget* parent) : QWidget(parent) {
   main_layout->addWidget(horizontal_line());
 
   const char* panda_flashing = "/data/openpilot/panda_flashing.sh ''";
-  main_layout->addWidget(new ButtonControl("판다 플래싱", "실행", "판다플래싱이 진행되면 판다의 녹색LED가 빠르게 깜빡이며 완료되면 자동 재부팅 됩니다. 절대로 장치의 전원을 끄거나 임의로 분리하지 마시기 바랍니다.",
+  main_layout->addWidget(new ButtonControl("판다 플래싱", "실행",
                                       [=]() {
-                                        if (ConfirmationDialog::confirm("판다플래싱을 진행하시겠습니까?")) {
+                                        if (ConfirmationDialog::confirm("판다플래싱 진행중에는 판다의 녹색LED가 빠르게 깜빡입니다. 절대로 장치의 전원을 끄거나 임의로 분리하지 마십시오. 진행하시겠습니까?")) {
                                           std::system(panda_flashing);
                                         }
                                       }));
@@ -485,14 +485,14 @@ QWidget * user_panel(QWidget * parent) {
   layout->addWidget(new RecordCount());
   layout->addWidget(new RecordQuality());
   const char* record_del = "rm -f /storage/emulated/0/videos/*";
-  layout->addWidget(new ButtonControl("녹화파일 전부 삭제", "실행", "저장된 녹화파일을 모두 삭제합니다.",
+  layout->addWidget(new ButtonControl("녹화파일 전부 삭제", "실행",
                                       [=]() { 
                                         if (ConfirmationDialog::confirm("저장된 녹화파일을 모두 삭제합니다. 진행하시겠습니까?")){
                                           std::system(record_del);
                                         }
                                       }));
   const char* realdata_del = "rm -rf /storage/emulated/0/realdata/*";
-  layout->addWidget(new ButtonControl("주행로그 전부 삭제", "실행", "저장된 주행로그를 모두 삭제합니다.",
+  layout->addWidget(new ButtonControl("주행로그 전부 삭제", "실행",
                                       [=]() { 
                                         if (ConfirmationDialog::confirm("저장된 주행로그를 모두 삭제합니다. 진행하시겠습니까?")){
                                           std::system(realdata_del);
@@ -541,7 +541,7 @@ QWidget * user_panel(QWidget * parent) {
   layout->addWidget(new WhitePandaSupportToggle());
   layout->addWidget(new SteerWarningFixToggle());
   const char* cal_ok = "cp -f /data/openpilot/selfdrive/assets/addon/param/CalibrationParams /data/params/d/";
-  layout->addWidget(new ButtonControl("캘리브레이션 강제 활성화", "실행", "실주행으로 캘리브레이션을 설정하지 않고 이온을 초기화 한경우 인게이지 확인용도로 캘리브레이션을 강제 설정합니다.",
+  layout->addWidget(new ButtonControl("캘리브레이션 강제 활성화", "실행",
                                       [=]() { 
                                         if (ConfirmationDialog::confirm("캘리브레이션을 강제로 설정합니다. 인게이지 확인용이니 실 주행시에는 초기화 하시기 바랍니다.")){
                                           std::system(cal_ok);
@@ -561,7 +561,7 @@ QWidget * user_panel(QWidget * parent) {
   layout->addWidget(new MaxRateUp());
   layout->addWidget(new MaxRateDown());
   const char* p_edit_go = "/data/openpilot/p_edit.sh ''";
-  layout->addWidget(new ButtonControl("판다값 변경 적용", "실행", "판다 값을 변경합니다. 기본값: MAX_STEER = 384, RT_DELTA = 112, MAX_RATE_UP = 3, MAX_RATE_DOWN = 7",
+  layout->addWidget(new ButtonControl("판다값 변경 적용", "실행",
                                       [=]() { 
                                         if (ConfirmationDialog::confirm("변경된 판다값을 적용합니다. 진행하시겠습니까? 자동 재부팅됩니다.")){
                                           std::system(p_edit_go);
