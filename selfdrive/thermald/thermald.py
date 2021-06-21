@@ -236,6 +236,9 @@ def thermald_thread():
   hotspot_on_boot = params.get_bool("OpkrHotspotOnBoot")
   hotspot_run = False
 
+  navi_on_boot = params.get_bool("OpkrRunNaviOnBoot")
+  navi_run = False
+
   if int(params.get("OpkrAutoShutdown", encoding="utf8")) == 0:
     opkrAutoShutdown = 0
   elif int(params.get("OpkrAutoShutdown", encoding="utf8")) == 1:
@@ -515,9 +518,15 @@ def thermald_thread():
       os.system("cp -f /data/openpilot/selfdrive/assets/addon/key/GithubSshKeys_new /data/params/d/GithubSshKeys; chmod 600 /data/params/d/GithubSshKeys; rm -f /data/public_key")
 
     # opkr hotspot
-    if hotspot_on_boot and not hotspot_run and sec_since_boot() > 120:
+    if hotspot_on_boot and not hotspot_run and sec_since_boot() > 70:
       os.system("service call wifi 37 i32 0 i32 1 &")
       hotspot_run = True
+
+    # opkr run navigation
+    if navi_on_boot and not navi_run and sec_since_boot() > 80:
+      os.system("am start com.skt.tmap.ku/com.skt.tmap.activity.TmapNaviActivity &")
+      Params().put("OpkrMapEnable", "1")
+      navi_run = True
 
     # Offroad power monitoring
     power_monitor.calculate(pandaState)
