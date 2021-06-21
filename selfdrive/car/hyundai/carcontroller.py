@@ -134,6 +134,7 @@ class CarController():
     self.opkr_maxanglelimit = float(int(self.params.get("OpkrMaxAngleLimit", encoding="utf8")))
     self.mad_mode_enabled = self.params.get_bool("MadModeEnabled")
     self.ldws_fix = self.params.get_bool("LdwsCarFix")
+    self.apks_enabled = self.params.get_bool("OpkrApksEnable")
 
     self.steer_mode = ""
     self.mdps_status = ""
@@ -343,11 +344,6 @@ class CarController():
       if frame % 2: # send clu11 to mdps if it is not on bus 0
         can_sends.append(create_clu11(self.packer, frame, CS.clu11, Buttons.NONE, enabled_speed, CS.CP.mdpsBus))
 
-    str_log1 = 'M/C={:03.0f}/{:03.0f}  TQ={:03.0f}  ST={:03.0f}/{:01.0f}/{:01.0f}  AQ={:+04.2f}  S={:.0f}/{:.0f}'.format(abs(self.model_speed), self.curve_speed, \
-     abs(new_steer), max(self.steerMax, abs(new_steer)), self.steerDeltaUp, self.steerDeltaDown, CS.scc12["aReqValue"], int(CS.is_highway), CS.safety_sign_check)
-
-    trace1.printf1('{}  {}'.format(str_log1, self.str_log2))
-
     if CS.out.cruiseState.modeSel == 0 and self.mode_change_switch == 4:
       self.mode_change_timer = 50
       self.mode_change_switch = 0
@@ -522,7 +518,7 @@ class CarController():
     if CS.CP.mdpsBus: # send mdps12 to LKAS to prevent LKAS error
       can_sends.append(create_mdps12(self.packer, frame, CS.mdps12))
 
-    if CS.CP.sccBus == 2 and self.counter_init and self.longcontrol:
+    if CS.CP.sccBus != 0 and self.counter_init and self.longcontrol:
       if frame % 2 == 0:
         self.scc12cnt += 1
         self.scc12cnt %= 0xF
@@ -580,6 +576,15 @@ class CarController():
       self.scc11cnt = CS.scc11init["AliveCounterACC"]
       self.fca11alivecnt = CS.fca11init["CR_FCA_Alive"]
       self.fca11supcnt = CS.fca11init["Supplemental_Counter"]
+
+    if self.apks_enabled:
+      str_log1 = 'M/C={:03.0f}/{:03.0f}  TQ={:03.0f}  ST={:03.0f}/{:01.0f}/{:01.0f}  R/C={:+04.2f}/{:+04.2f}'.format(abs(self.model_speed), self.curve_speed, \
+       abs(new_steer), max(self.steerMax, abs(new_steer)), self.steerDeltaUp, self.steerDeltaDown, CS.scc12["aReqValue"], apply_accel)
+    else:
+      str_log1 = 'M/C={:03.0f}/{:03.0f}  TQ={:03.0f}  ST={:03.0f}/{:01.0f}/{:01.0f}  R/C={:+04.2f}/{:+04.2f}  S={:.0f}/{:.0f}'.format(abs(self.model_speed), self.curve_speed, \
+       abs(new_steer), max(self.steerMax, abs(new_steer)), self.steerDeltaUp, self.steerDeltaDown, CS.scc12["aReqValue"], apply_accel, int(CS.is_highway), CS.safety_sign_check)
+
+    trace1.printf1('{}  {}'.format(str_log1, self.str_log2))
 
     # 20 Hz LFA MFA message
     if frame % 5 == 0 and self.car_fingerprint in FEATURES["send_lfahda_mfa"]:
