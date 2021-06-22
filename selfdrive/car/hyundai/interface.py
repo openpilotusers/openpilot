@@ -179,9 +179,6 @@ class CarInterface(CarInterfaceBase):
     elif candidate == CAR.K3:
       ret.mass = 1260. + STD_CARGO_KG
       ret.wheelbase = 2.70
-    elif candidate == CAR.CEED:
-      ret.mass = 1350. + STD_CARGO_KG
-      ret.wheelbase = 2.65
     elif candidate == CAR.SPORTAGE:
       ret.mass = 1985. + STD_CARGO_KG
       ret.wheelbase = 2.78
@@ -197,6 +194,9 @@ class CarInterface(CarInterfaceBase):
     elif candidate == CAR.SOUL_EV:
       ret.mass = 1375. + STD_CARGO_KG
       ret.wheelbase = 2.6
+    elif candidate == CAR.MOHAVE:
+      ret.mass = 2285. + STD_CARGO_KG
+      ret.wheelbase = 2.895
 
     ret.radarTimeStep = 0.05
     ret.centerToFront = ret.wheelbase * 0.4
