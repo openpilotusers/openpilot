@@ -2588,8 +2588,8 @@ SteerMaxBase::SteerMaxBase() : AbstractControl("SteerMax기본값", "SteerMax기
     auto str = QString::fromStdString(params.get("SteerMaxBaseAdj"));
     int value = str.toInt();
     value = value + 2;
-    if (value >= 384 ) {
-      value = 384;
+    if (value >= 450 ) {
+      value = 450;
     }
     QString values = QString::number(value);
     params.put("SteerMaxBaseAdj", values.toStdString());
