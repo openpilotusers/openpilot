@@ -128,14 +128,14 @@ class LongControl():
       deadzone = interp(v_ego_pid, CP.longitudinalTuning.deadzoneBP, CP.longitudinalTuning.deadzoneV)
 
       # opkr
-      if self.vRel_prev != vRel and vRel <= 0 and CS.vEgo > 13.8 and self.damping_timer == 0: # decel mitigation for a while
-        if (vRel - self.vRel_prev)*3.6 < -5:
-          self.damping_timer = 30
-          self.decel_damping2 = interp(abs((vRel - self.vRel_prev)*3.6), [5, 20], [1, 0.1])
+      if self.vRel_prev != vRel and vRel <= 0 and CS.vEgo > 13. and self.damping_timer == 0: # decel mitigation for a while
+        if (vRel - self.vRel_prev)*3.6 < -4:
+          self.damping_timer = 45
+          self.decel_damping2 = interp(abs((vRel - self.vRel_prev)*3.6), [0, 10], [1, 0.1])
         self.vRel_prev = vRel
       elif self.damping_timer > 0:
         self.damping_timer -= 1
-        self.decel_damping = interp(self.damping_timer, [0, 30], [1, self.decel_damping2])
+        self.decel_damping = interp(self.damping_timer, [0, 45], [1, self.decel_damping2])
 
       output_gb = self.pid.update(self.v_pid, v_ego_pid, speed=v_ego_pid, deadzone=deadzone, feedforward=a_target, freeze_integrator=prevent_overshoot)
       output_gb *= self.decel_damping
@@ -182,7 +182,7 @@ class LongControl():
       self.long_stat = "---"
 
     if CP.sccBus != 0 and self.long_log:
-      str_log3 = 'MDPS={:1.0f}  SCC={:1.0f}  LS={:s}  GS={:01.2f}/{:01.2f}  BK={:01.2f}/{:01.2f}  GB={:+04.2f}  TG={:+04.2f}  G={:1.0f}  GS={}'.format(CP.mdpsBus, CP.sccBus, self.long_stat, final_gas, gas_max, abs(final_brake), abs(brake_max), output_gb, a_target_raw, CS.cruiseGapSet, int(CS.gasPressed))
+      str_log3 = 'MDPS={:1.0f}  SCC={:1.0f}  LS={:s}  GS={:01.2f}/{:01.2f}  BK={:01.2f}/{:01.2f}  GB={:+04.2f}  G={:1.0f}  GS={}  TG={:+04.2f}'.format(CP.mdpsBus, CP.sccBus, self.long_stat, final_gas, gas_max, abs(final_brake), abs(brake_max), output_gb, CS.cruiseGapSet, int(CS.gasPressed), a_target_raw)
       trace1.printf2('{}'.format(str_log3))
 
     return final_gas, final_brake

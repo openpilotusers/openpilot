@@ -112,7 +112,7 @@ class SpdctrlRelaxed(SpdController):
             d_delta2 = 0
  
         if CS.driverAcc_time and not self.map_decel_only: #운전자가 가속페달 밟으면 크루즈 설정속도를 현재속도+1로 동기화
-            if int(CS.VSetDis) < int(round(CS.clu_Vanz)):
+            if int(CS.VSetDis) < int(round(CS.clu_Vanz)) + 1:
               lead_set_speed = int(round(CS.clu_Vanz)) + 1
               self.seq_step_debug = "운전자가속"
               lead_wait_cmd = 8
@@ -209,8 +209,8 @@ class SpdctrlRelaxed(SpdController):
             elif 7 < int(CS.clu_Vanz) < 30 and lead_objspd < 0 and CS.VSetDis > 30:
                 self.seq_step_debug = "SS>VS,30이하"
                 lead_wait_cmd, lead_set_speed = self.get_tm_speed( CS, 8, -5)
-            elif lead_objspd == 0 and int(CS.clu_Vanz)+3 <= int(CS.VSetDis) and int(CS.clu_Vanz) > 40 and 1 < dRel < 149: # 앞차와 속도 같을 시 현재속도+5로 크루즈설정속도 유지
-                self.seq_step_debug = "SS>VS,vRel=0"
+            elif lead_objspd <= 0 and int(CS.clu_Vanz)+4 <= int(CS.VSetDis) and int(CS.clu_Vanz) > 40 and 1 < dRel < 149: # 앞차와 속도 같을 시 현재속도+5로 크루즈설정속도 유지
+                self.seq_step_debug = "SS>VS,vRel<=0"
                 lead_wait_cmd, lead_set_speed = self.get_tm_speed( CS, 8, -1)
             elif d_delta == 0 and lead_objspd == 0 and int(CS.clu_Vanz//10) >= int(CS.VSetDis//10) and dRel > 149 and ((int(round(self.target_speed)) > int(CS.VSetDis) and self.target_speed != 0) or self.target_speed == 0):
                 self.seq_step_debug = "선행차없음"

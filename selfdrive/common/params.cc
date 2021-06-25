@@ -319,7 +319,6 @@ std::unordered_map<std::string, uint32_t> keys = {
     {"OpkrMonitorNormalEyesThreshold", PERSISTENT},
     {"OpkrMonitorBlinkThreshold", PERSISTENT},
     {"MadModeEnabled", PERSISTENT},
-    {"ModelLongEnabled", PERSISTENT},
     {"OpkrFanSpeedGain", PERSISTENT},
     {"CommaStockUI", PERSISTENT},
     {"OpkrEnableUploader", PERSISTENT},

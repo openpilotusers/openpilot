@@ -32,7 +32,7 @@ import common.log as trace1
 LDW_MIN_SPEED = 50 * CV.KPH_TO_MS
 LANE_DEPARTURE_THRESHOLD = 0.1
 STEER_ANGLE_SATURATION_TIMEOUT = 1.0 / DT_CTRL
-STEER_ANGLE_SATURATION_THRESHOLD = 15  # Degrees
+STEER_ANGLE_SATURATION_THRESHOLD = 5  # Degrees
 
 SIMULATION = "SIMULATION" in os.environ
 NOSENSOR = "NOSENSOR" in os.environ
@@ -193,8 +193,7 @@ class Controls:
     self.new_steerRatio_prev = self.CP.steerRatio
     self.steerRatio_to_send = 0
     self.live_sr = params.get_bool("OpkrLiveSteerRatio")
-    
-    self.model_long_alert_prev = True
+
     self.second = 0.0
     self.map_enabled = False
 
@@ -348,15 +347,7 @@ class Controls:
     #if CS.brakePressed and self.sm['longitudinalPlan'].vTargetFuture >= STARTING_TARGET_SPEED \
     #  and self.CP.openpilotLongitudinalControl and CS.vEgo < 0.3:
     #  self.events.add(EventName.noTarget)
-
-    # ModelLongAlert
-    if Params().get_bool("ModelLongEnabled") and self.model_long_alert_prev:
-      self.events.add(EventName.modelLongAlert)
-      self.model_long_alert_prev = not self.model_long_alert_prev
-    elif not Params().get_bool("ModelLongEnabled"):
-      self.model_long_alert_prev = True
       
-
     # atom
     if self.auto_enabled:
       self.auto_enable( CS )
@@ -372,6 +363,7 @@ class Controls:
 
     all_valid = CS.canValid and self.sm.all_alive_and_valid()
     if not self.initialized and (all_valid or self.sm.frame * DT_CTRL > 2.0):
+      self.CI.init(self.CP, self.can_sock, self.pm.sock['sendcan'])
       self.initialized = True
       Params().put_bool("ControlsReady", True)
 
