@@ -2198,8 +2198,8 @@ SRBaseControl::SRBaseControl() : AbstractControl("SteerRatio", "SteerRatio Í∏∞Î≥
     auto str = QString::fromStdString(params.get("SteerRatioAdj"));
     int value = str.toInt();
     value = value - 1;
-    if (value <= 80 ) {
-      value = 80;
+    if (value <= 800 ) {
+      value = 800;
     }
     QString values = QString::number(value);
     params.put("SteerRatioAdj", values.toStdString());
@@ -2210,8 +2210,8 @@ SRBaseControl::SRBaseControl() : AbstractControl("SteerRatio", "SteerRatio Í∏∞Î≥
     auto str = QString::fromStdString(params.get("SteerRatioAdj"));
     int value = str.toInt();
     value = value + 1;
-    if (value >= 200) {
-      value = 200;
+    if (value >= 2000) {
+      value = 2000;
     }
     QString values = QString::number(value);
     params.put("SteerRatioAdj", values.toStdString());
@@ -2223,7 +2223,7 @@ SRBaseControl::SRBaseControl() : AbstractControl("SteerRatio", "SteerRatio Í∏∞Î≥
 void SRBaseControl::refresh() {
   auto strs = QString::fromStdString(params.get("SteerRatioAdj"));
   int valuei = strs.toInt();
-  float valuef = valuei * 0.1;
+  float valuef = valuei * 0.01;
   QString valuefs = QString::number(valuef);
   label.setText(QString::fromStdString(valuefs.toStdString()));
   btnminus.setText("Ôºç");
@@ -2261,8 +2261,8 @@ SRMaxControl::SRMaxControl() : AbstractControl("SteerRatioMax", "SteerRatio ÏµúÎ
     auto str = QString::fromStdString(params.get("SteerRatioMaxAdj"));
     int value = str.toInt();
     value = value - 1;
-    if (value <= 100 ) {
-      value = 100;
+    if (value <= 1000 ) {
+      value = 1000;
     }
     QString values = QString::number(value);
     params.put("SteerRatioMaxAdj", values.toStdString());
@@ -2273,8 +2273,8 @@ SRMaxControl::SRMaxControl() : AbstractControl("SteerRatioMax", "SteerRatio ÏµúÎ
     auto str = QString::fromStdString(params.get("SteerRatioMaxAdj"));
     int value = str.toInt();
     value = value + 1;
-    if (value >= 250 ) {
-      value = 250;
+    if (value >= 2500 ) {
+      value = 2500;
     }
     QString values = QString::number(value);
     params.put("SteerRatioMaxAdj", values.toStdString());
@@ -2286,7 +2286,7 @@ SRMaxControl::SRMaxControl() : AbstractControl("SteerRatioMax", "SteerRatio ÏµúÎ
 void SRMaxControl::refresh() {
   auto strs = QString::fromStdString(params.get("SteerRatioMaxAdj"));
   int valuei = strs.toInt();
-  float valuef = valuei * 0.1;
+  float valuef = valuei * 0.01;
   QString valuefs = QString::number(valuef);
   label.setText(QString::fromStdString(valuefs.toStdString()));
   btnminus.setText("Ôºç");
