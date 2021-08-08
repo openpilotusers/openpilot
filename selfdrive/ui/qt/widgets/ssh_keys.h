@@ -34,6 +34,24 @@ private:
   void getUserKeys(const QString &username);
 };
 
+class SwitchOpenpilot : public ButtonControl {
+  Q_OBJECT
+
+public:
+  SwitchOpenpilot();
+
+private:
+  Params params;
+
+  QString githubid;
+  QString githubrepo;
+  QString githubbranch;
+
+  void refresh();
+  void getUserID(const QString &userid);
+  void getRepoID(const QString &repoid);
+  void getBranchID(const QString &branchid);
+};
 
 class SshLegacyToggle : public ToggleControl {
   Q_OBJECT

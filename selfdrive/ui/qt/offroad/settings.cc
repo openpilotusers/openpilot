@@ -397,6 +397,10 @@ SoftwarePanel::SoftwarePanel(QWidget* parent) : QWidget(parent) {
   });
   main_layout->addWidget(pandaflashingtbtn);
 
+  main_layout->addWidget(horizontal_line());
+
+  main_layout->addWidget(new SwitchOpenpilot()); // opkr
+
   setStyleSheet(R"(QLabel {font-size: 50px;})");
 
   fs_watch = new QFileSystemWatcher(this);
