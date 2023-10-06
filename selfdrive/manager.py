@@ -412,6 +412,8 @@ def manager_init(should_register=True):
     reg_res = register()
     if reg_res:
       dongle_id = reg_res
+    elif not reg_res:
+      dongle_id = ""
     else:
       raise Exception("server registration failed")
   else:
