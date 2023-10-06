@@ -338,36 +338,48 @@ class CarController():
       self.sendaccmode = enabled
 
     if CS.CP.radarDisablePossible:
+      print('test1')
       self.radarDisableOverlapTimer += 1
       self.radarDisableResetTimer = 0
       if self.radarDisableOverlapTimer >= 30:
+        print('test2')
         self.radarDisableActivated = True
         if 200 > self.radarDisableOverlapTimer > 36:
+          print('test3')
           if frame % 41 == 0 or self.radarDisableOverlapTimer == 37:
+            print('test4')
             can_sends.append(create_scc7d0(b'\x02\x10\x03\x00\x00\x00\x00\x00'))
           elif frame % 43 == 0 or self.radarDisableOverlapTimer == 37:
+            print('test5')
             can_sends.append(create_scc7d0(b'\x03\x28\x03\x01\x00\x00\x00\x00'))
           elif frame % 19 == 0 or self.radarDisableOverlapTimer == 37:
+            print('test6')
             can_sends.append(create_scc7d0(b'\x02\x10\x85\x00\x00\x00\x00\x00'))  # this disables RADAR for
       else:
+        print('test7')
         self.counter_init = False
         can_sends.append(create_scc7d0(b'\x02\x10\x90\x00\x00\x00\x00\x00'))  # this enables RADAR
         can_sends.append(create_scc7d0(b'\x03\x29\x03\x01\x00\x00\x00\x00'))
     elif self.radarDisableActivated:
+      print('test8')
       can_sends.append(create_scc7d0(b'\x02\x10\x90\x00\x00\x00\x00\x00'))  # this enables RADAR
       can_sends.append(create_scc7d0(b'\x03\x29\x03\x01\x00\x00\x00\x00'))
       self.radarDisableOverlapTimer = 0
       if frame % 50 == 0:
+        print('test9')
         self.radarDisableResetTimer += 1
         if self.radarDisableResetTimer > 2:
+          print('testA')
           self.radarDisableActivated = False
           self.counter_init = True
     else:
+      print('testB')
       self.radarDisableOverlapTimer = 0
       self.radarDisableResetTimer = 0
 
     if (frame % 50 == 0 or self.radarDisableOverlapTimer == 37) and \
             CS.CP.radarDisablePossible and self.radarDisableOverlapTimer >= 30:
+      print('testC')
       can_sends.append(create_scc7d0(b'\x02\x3E\x00\x00\x00\x00\x00\x00'))
 
     if self.lead_visible:
@@ -378,6 +390,7 @@ class CarController():
 
     # send scc to car if longcontrol enabled and SCC not on bus 0 or ont live
     if (CS.CP.sccBus == 2 or not self.usestockscc or self.radarDisableActivated) and self.counter_init:
+      print('testD')
       if frame % 2 == 0:
         self.scc12cnt += 1
         self.scc12cnt %= 0xF
@@ -387,6 +400,7 @@ class CarController():
         self.fca11supcnt %= 0xF
 
         if self.fca11alivecnt == 1:
+          print('testH')
           self.fca11inc = 0
           if self.fca11cnt13 == 3:
             self.fca11maxcnt = 0x9
@@ -395,6 +409,7 @@ class CarController():
             self.fca11maxcnt = 0xD
             self.fca11cnt13 += 1
         else:
+          print('testI')
           self.fca11inc += 4
 
         self.fca11alivecnt = self.fca11maxcnt - self.fca11inc
@@ -419,15 +434,18 @@ class CarController():
         can_sends.append(create_scc14(self.packer, enabled, self.usestockscc, CS.out.stockAeb, apply_accel,
                                       CS.scc14, self.objdiststat, CS.out.gasPressed, self.acc_standstill, CS.out.vEgo))
         if CS.CP.fcaBus == -1:
+          print('testE')
           can_sends.append(create_fca11(self.packer, CS.fca11, self.fca11alivecnt, self.fca11supcnt))
 
       if frame % 20 == 0:
         can_sends.append(create_scc13(self.packer, CS.scc13))
         if CS.CP.fcaBus == -1:
+          print('testF')
           can_sends.append(create_fca12(self.packer))
       if frame % 50 == 0:
         can_sends.append(create_scc42a(self.packer))
     else:
+      print('testG')
       self.counter_init = True
       self.scc12cnt = CS.scc12init["CR_VSM_Alive"]
       self.scc11cnt = CS.scc11init["AliveCounterACC"]
